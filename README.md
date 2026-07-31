@@ -12,4 +12,4 @@ This is a repository for my Final Year Project (FYP).
 - Clustering
 
 # Database
-- AWS (Still considering)
+- Currently using local text files, will do future investment on this
