@@ -1,10 +1,36 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Title</title>
+    <!-- Ensure the text in browser is displayed correctly  -->
+    <meta charset="utf-8">
+    <!-- Show layout correctly on different devices such as phones and tablets -->
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Starting Data Modelling</title>
 </head>
+
 <body>
-    Hello JH
+    <main>
+        <h1>Dataset Modelling Starter</h1>
+
+        <p>
+            Dataset:
+            <code>{{ dataset_path }}</code>
+        </p>
+
+        <!-- Implemented Jinja because it uses {% %} to select the correct modelling status message. -->
+        {% if modelling_completed %}
+            <h2>Modelling completed</h2>
+
+            <p>
+                Decision Tree and K-Means have finished.
+                Check the Flask terminal for the complete results.
+            </p>
+        {% elif error %}
+            <h2>Modelling failed</h2>
+            <p>{{ error }}</p>
+        {% else %}
+            <p>Preparing the dataset...</p>
+        {% endif %}
+    </main>
 </body>
 </html>
