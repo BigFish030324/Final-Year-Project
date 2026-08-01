@@ -108,11 +108,6 @@ def detect_model_type(target: pd.Series) -> tuple[str, str]:
         "The numeric target contains many distinct values.",
     )
 
-
-# ----------------------------------------------------
-# XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXx
-# ----------------------------------------------------
-
 # Numeric columns:
 # - Fill missing values with the median
 # - Standardize their scale
@@ -120,7 +115,6 @@ def detect_model_type(target: pd.Series) -> tuple[str, str]:
 # Categorical columns:
 # - Fill missing values with the most common value
 # - Convert categories into one-hot columns
-
 def build_preprocessor(features: pd.DataFrame):
     from sklearn.compose import ColumnTransformer
     from sklearn.impute import SimpleImputer
