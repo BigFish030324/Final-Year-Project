@@ -7,9 +7,9 @@ from flask import Flask, render_template
 
 from data_science import (
     DATASET_PATH,
-    UserError,
     run_dataset,
 )
+from error_handler import UserError
 
 # ----------------------------------------------------
 # Website
@@ -34,6 +34,7 @@ def index():
         "index.html",
         dataset_path = str(DATASET_PATH),
         modelling_completed = result is not None,
+        result=result,
         error = error,
     )
 

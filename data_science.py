@@ -8,6 +8,13 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from error_handler import UserError
+from model_library.models_importer import (
+    decision_tree,
+    k_means,
+)
+
+
 # ----------------------------------------------------
 # Dataset
 # ----------------------------------------------------
@@ -59,12 +66,11 @@ def read_dataset(path: Path) -> pd.DataFrame:
         if path.suffix.lower() == ".xlsx":
             return pd.read_excel(path, engine="openpyxl")
 
+    # Catch CSV, Excel and file-reading problems
     except Exception as error:
         raise UserError(
             f"The dataset could not be read: {error}"
         ) from error
-
-    raise UserError("Only CSV and XLSX datasets are supported.")
 
 # Detect and filter input data into correct model type (Example: Classification / Regression)
 def detect_model_type(target: pd.Series) -> tuple[str, str]:
@@ -287,6 +293,9 @@ def decision_tree(
             ("prepare_data", preprocessor),
             ("decision_tree", estimator),
         ]
+    # Reject unsupported formats such as JSON or TXT
+    raise UserError(
+        "Only CSV and XLSX datasets are supported."
     )
 
     model_pipeline.fit(features_train, target_train)
