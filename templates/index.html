@@ -11,7 +11,6 @@
 <body>
     <main>
         <h1>Dataset Modelling Starter</h1>
-
         <p>
             Dataset:
             <code>{{ dataset_path }}</code>
@@ -20,14 +19,68 @@
         <!-- Jinja selects the appropriate modelling status message. -->
         {% if modelling_completed %}
             <h2>Modelling completed</h2>
+            <section>
+                <h3>Dataset Summary</h3>
+                <p>
+                    Rows: {{ result["dataset"]["rows"] }}<br>
+                    Columns: {{ result["dataset"]["columns"] }}<br>
+                    Prediction target: {{ result["dataset"]["target"] }}
+                </p>
+            </section>
 
-            <p>
-                Decision Tree and K-Means have finished.
-                Check the Flask terminal for the complete results.
-            </p>
+            <section>
+                <h3>Decision Tree</h3>
+                <p>
+                    Model type: {{ result["decision_tree"]["task"] }}<br>
+                    Training rows: {{ result["decision_tree"]["train_rows"] }}<br>
+                    Testing rows: {{ result["decision_tree"]["test_rows"] }}
+                </p>
+                <h4>Metrics</h4>
+                <ul>
+                    {% for metric_name, metric_value
+                        in result["decision_tree"]["metrics"].items() %}
+                        <li>
+                            {{ metric_name }}:
+                            {{ metric_value }}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </section>
+
+            <section>
+                <h3>K-Means</h3>
+                <p>
+                    Number of clusters: {{ result["kmeans"]["number_of_clusters"] }}<br>
+                    Rows used: {{ result["kmeans"]["rows_used"] }}
+                </p>
+                <h4>Metrics</h4>
+                <ul>
+                    {% for metric_name, metric_value
+                        in result["kmeans"]["metrics"].items() %}
+                        <li>
+                            {{ metric_name }}:
+                            {{ metric_value }}
+                        </li>
+                    {% endfor %}
+                </ul>
+
+                <h4>Cluster sizes</h4>
+                <ul>
+                    {% for cluster_name, row_count
+                        in result["kmeans"]["cluster_counts"].items() %}
+                        <li>
+                            {{ cluster_name }}:
+                            {{ row_count }} rows
+                        </li>
+                    {% endfor %}
+                </ul>
+                <p>{{ result["kmeans"]["note"] }}</p>
+            </section>
+
         {% elif error %}
             <h2>Modelling failed</h2>
             <p>{{ error }}</p>
+
         {% else %}
             <p>Preparing the dataset...</p>
         {% endif %}
