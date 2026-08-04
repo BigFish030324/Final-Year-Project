@@ -65,15 +65,15 @@ def read_dataset(path: Path) -> pd.DataFrame:
 # ----------------------------------------------------
 
 # Display the dataset summary in the terminal
-def print_dataset_summary(frame: pd.DataFrame,) -> None:
+def print_dataset_summary(frame: pd.DataFrame, dataset_path: Path, target_column: str,) -> None:
     print("\n" + "=" * 10)
     print("DATASET SUMMARY")
     print("=" * 10)
-    print(f"Dataset path : {DATASET_PATH}")
+    print(f"Dataset path : {dataset_path}")
     print(f"Rows         : {len(frame):,}")
     print(f"Columns      : {len(frame.columns):,}")
     print(f"Column names : {list(frame.columns)}")
-    print(f"Target       : {TARGET_COLUMN}")
+    print(f"Target       : {target_column}")
     print("\nFirst five rows:")
     print(frame.head().to_string(index=False))
 
@@ -89,32 +89,21 @@ def print_model_result(result: dict[str, Any],) -> None:
 # ----------------------------------------------------
 
 # Load input dataset and run both models (Decision Tree & K-Mean)
-def run_dataset() -> dict[str, Any]:
-    frame = read_dataset(DATASET_PATH)
-
-    print_dataset_summary(frame)
+# Decision Tree stays in decision_tree.py and K-Means stays in k_mean.py
+def run_dataset(dataset_path: Path, target_column: str, train_percent: int = 70, seed: int = 42,) -> dict[str, Any]:
+    frame = read_dataset(dataset_path)
+    print_dataset_summary(frame, dataset_path, target_column,)
 
     # ----------------------------------------------------
     # Run Decision Tree
     # ----------------------------------------------------
-    decision_tree_result = decision_tree(
-        frame,
-        target_column=TARGET_COLUMN,
-        train_percent=TRAIN_PERCENT,
-        seed=RANDOM_SEED,
-    )
-
+    decision_tree_result = decision_tree(frame, target_column=target_column, train_percent=train_percent, seed=seed,)
     print_model_result(decision_tree_result)
 
     # ----------------------------------------------------
     # Run K-Means
     # ----------------------------------------------------
-    kmeans_result = k_means(
-        frame,
-        target_column=TARGET_COLUMN,
-        seed=RANDOM_SEED,
-    )
-
+    kmeans_result = k_means(frame, target_column=target_column, seed=seed,)
     print_model_result(kmeans_result)
 
     print("\n" + "=" * 70)
@@ -124,10 +113,10 @@ def run_dataset() -> dict[str, Any]:
     # Combine dataset, Decision Tree and K-Means results
     return {
         "dataset": {
-            "path": str(DATASET_PATH),
+            "path": str(dataset_path),
             "rows": len(frame),
             "columns": len(frame.columns),
-            "target": TARGET_COLUMN,
+            "target": target_column,
         },
         "decision_tree": decision_tree_result,
         "kmeans": kmeans_result,

@@ -12,6 +12,9 @@ from flask import Flask, render_template
 
 from data_science import (
     DATASET_PATH,
+    RANDOM_SEED,
+    TARGET_COLUMN,
+    TRAIN_PERCENT,
     run_dataset,
 )
 from error_handler import UserError
@@ -27,7 +30,12 @@ app = Flask(__name__)
 def index():
     # Runs the whole data modeling process
     try:
-        result = run_dataset()
+        result = run_dataset(
+            dataset_path=DATASET_PATH,
+            target_column=TARGET_COLUMN,
+            train_percent=TRAIN_PERCENT,
+            seed=RANDOM_SEED,
+        )
         error = None
     except UserError as exception:
         result = None
