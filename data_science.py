@@ -31,6 +31,7 @@ RANDOM_SEED = 42
 # ----------------------------------------------------
 
 # Confirm that the dataset exists before trying to read it
+# ONLY accept .xlsx or .csv file format. Reject other file formats
 def read_dataset(path: Path) -> pd.DataFrame:
     if not path.exists():
         raise UserError(f"The dataset does not exist: {path}")
