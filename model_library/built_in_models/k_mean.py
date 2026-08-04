@@ -1,3 +1,8 @@
+
+# ----------------------------------------------------
+# Prepare, train & evaluate K-Means
+# ----------------------------------------------------
+
 from __future__ import annotations
 
 from typing import Any
