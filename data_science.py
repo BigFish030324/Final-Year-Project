@@ -16,6 +16,7 @@ from model_library.models_importer import (
     decision_tree,
     k_means,
 )
+from model_library.model_helpers import safe_json_value
 
 
 # ----------------------------------------------------
@@ -59,6 +60,50 @@ def read_dataset(path: Path) -> pd.DataFrame:
     raise UserError(
         "Only CSV and XLSX datasets are supported."
     )
+
+
+# ----------------------------------------------------
+# Inspect Dataset Before Modelling
+# ----------------------------------------------------
+
+# Read an uploaded dataset and return information needed by the webpage
+# Models do not run yet because the user has not selected a target column
+def inspect_dataset(
+    dataset_path: Path,
+    original_filename: str,
+) -> dict[str, Any]:
+    frame = read_dataset(dataset_path)
+
+    if frame.empty or len(frame.columns) == 0:
+        raise UserError(
+            "The uploaded dataset has no usable rows or columns."
+        )
+
+    # Convert every column name to text so Flask and Jinja can display it
+    frame.columns = [
+        str(column)
+        for column in frame.columns
+    ]
+
+    # Convert the first five rows into values safe for webpage display
+    preview = [
+        {
+            str(column): safe_json_value(value)
+            for column, value in record.items()
+        }
+        for record in frame.head(5).to_dict(
+            orient="records"
+        )
+    ]
+
+    return {
+        "filename": original_filename,
+        "stored_path": str(dataset_path),
+        "rows": len(frame),
+        "columns": len(frame.columns),
+        "column_names": list(frame.columns),
+        "preview": preview,
+    }
 
 # ----------------------------------------------------
 # Terminal Output

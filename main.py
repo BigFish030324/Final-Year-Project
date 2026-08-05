@@ -4,18 +4,16 @@
 # ----------------------------------------------------
 
 from __future__ import annotations
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 
 # ----------------------------------------------------
 # Data Science
 # ----------------------------------------------------
 
-from data_science import (
-    DATASET_PATH,
-    RANDOM_SEED,
-    TARGET_COLUMN,
-    TRAIN_PERCENT,
-    run_dataset,
+from data_science import inspect_dataset
+from dataset_upload import (
+    MAX_UPLOAD_BYTES,
+    save_uploaded_dataset,
 )
 from error_handler import UserError
 
@@ -24,32 +22,63 @@ from error_handler import UserError
 # ----------------------------------------------------
 
 app = Flask(__name__)
+app.config["MAX_CONTENT_LENGTH"] = MAX_UPLOAD_BYTES
 
-# When user runs or refreshes the home page, run index()
-@app.get("/")
+# Open the upload page with GET and inspect an uploaded dataset with POST
+@app.route("/", methods=["GET", "POST"])
 def index():
-    # Runs the whole data modeling process
-    try:
-        result = run_dataset(
-            dataset_path=DATASET_PATH,
-            target_column=TARGET_COLUMN,
-            train_percent=TRAIN_PERCENT,
-            seed=RANDOM_SEED,
-        )
-        error = None
-    except UserError as exception:
-        result = None
-        error = str(exception)
-        print(f"\nMODELLING ERROR: {error}\n")
+    uploaded_dataset = None
+    error = None
+    stored_path = None
+
+    # Only process a dataset after the upload form is submitted
+    if request.method == "POST":
+        try:
+            stored_path, original_filename = save_uploaded_dataset(
+                request.files.get("dataset")
+            )
+
+            # Read and inspect the file, but do not run models yet
+            uploaded_dataset = inspect_dataset(
+                stored_path,
+                original_filename,
+            )
+
+            print("\n" + "=" * 70)
+            print("DATASET UPLOADED SUCCESSFULLY")
+            print("=" * 70)
+            print(f"Filename : {uploaded_dataset['filename']}")
+            print(f"Rows     : {uploaded_dataset['rows']:,}")
+            print(f"Columns  : {uploaded_dataset['columns']:,}\n")
+
+        except UserError as exception:
+            # Remove a saved file when its contents cannot be read
+            if stored_path is not None:
+                stored_path.unlink(missing_ok=True)
+
+            error = str(exception)
+            print(f"\nUPLOAD ERROR: {error}\n")
 
     # Render the HTML page (Webpage)
     return render_template(
         "index.html",
-        dataset_path = str(DATASET_PATH),
-        modelling_completed = result is not None,
-        result=result,
-        error = error,
+        uploaded_dataset=uploaded_dataset,
+        modelling_completed=False,
+        result=None,
+        error=error,
     )
+
+
+# Display an understandable message when the upload exceeds 100 MB
+@app.errorhandler(413)
+def upload_too_large(_error):
+    return render_template(
+        "index.html",
+        uploaded_dataset=None,
+        modelling_completed=False,
+        result=None,
+        error="The uploaded dataset exceeds the 100 MB limit.",
+    ), 413
 
 # ----------------------------------------------------
 # Run Website Locally
