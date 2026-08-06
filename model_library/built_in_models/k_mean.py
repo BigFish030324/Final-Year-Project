@@ -20,6 +20,7 @@ from model_library.model_helpers import build_preprocessor
 def k_means(
     frame: pd.DataFrame,
     target_column: str,
+    number_of_clusters: int = 3,
     seed: int = 42,
 ) -> dict[str, Any]:
     from sklearn.cluster import KMeans
@@ -51,10 +52,19 @@ def k_means(
             "K-Means requires at least three usable rows."
         )
 
+    # Silhouette scoring requires at least two clusters.
+    if number_of_clusters < 2:
+        raise UserError(
+            "K-Means requires at least two clusters."
+        )
+
+    if number_of_clusters >= len(features):
+        raise UserError(
+            "The number of K-Means clusters must be smaller than the number of usable rows."
+        )
+
     preprocessor = build_preprocessor(features)
     prepared_features = preprocessor.fit_transform(features)
-
-    number_of_clusters = 3
 
     # Create the K-Means model
     model = KMeans(
@@ -70,12 +80,15 @@ def k_means(
         prepared_features
     )
 
-    metrics = {
-        "inertia": round(
-            float(model.inertia_),
-            5,
-        ),
-        "silhouette_score": round(
+    discovered_cluster_count = len(
+        set(cluster_labels)
+    )
+
+    # Identical rows can cause K-Means to discover fewer groups than requested.
+    # Silhouette score is unavailable when only one distinct group is found.
+    silhouette = None
+    if 1 < discovered_cluster_count < len(features):
+        silhouette = round(
             float(
                 silhouette_score(
                     prepared_features,
@@ -83,7 +96,14 @@ def k_means(
                 )
             ),
             5,
+        )
+
+    metrics = {
+        "inertia": round(
+            float(model.inertia_),
+            5,
         ),
+        "silhouette_score": silhouette,
     }
 
     # Additional diagnostic:

@@ -123,7 +123,13 @@ def print_model_result(result: dict[str, Any],) -> None:
 
 # Load input dataset and run both models (Decision Tree & K-Mean)
 # Decision Tree stays in decision_tree.py and K-Means stays in k_mean.py
-def run_dataset(dataset_path: Path, target_column: str, train_percent: int = 70, seed: int = 42,) -> dict[str, Any]:
+def run_dataset(
+    dataset_path: Path,
+    target_column: str,
+    train_percent: int = 70,
+    number_of_clusters: int = 3,
+    seed: int = 42,
+) -> dict[str, Any]:
     frame = read_dataset(dataset_path)
     print_dataset_summary(frame, dataset_path, target_column,)
 
@@ -136,7 +142,12 @@ def run_dataset(dataset_path: Path, target_column: str, train_percent: int = 70,
     # ----------------------------------------------------
     # Run K-Means
     # ----------------------------------------------------
-    kmeans_result = k_means(frame, target_column=target_column, seed=seed,)
+    kmeans_result = k_means(
+        frame,
+        target_column=target_column,
+        number_of_clusters=number_of_clusters,
+        seed=seed,
+    )
     print_model_result(kmeans_result)
 
     print("\n" + "=" * 70)

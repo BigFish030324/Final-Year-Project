@@ -62,6 +62,24 @@ def decision_tree(
             "At least 10 usable rows are required."
         )
 
+    # Both groups need a percentage. Extreme values are allowed so the user
+    # can experiment and observe why an unbalanced split may perform poorly.
+    if train_percent < 1 or train_percent > 99:
+        raise UserError(
+            "The Decision Tree training percentage must be between 1 and 99."
+        )
+
+    estimated_train_rows = math.floor(
+        len(usable_data) * train_percent / 100
+    )
+    estimated_test_rows = len(usable_data) - estimated_train_rows
+
+    if estimated_train_rows < 1 or estimated_test_rows < 1:
+        raise UserError(
+            "This dataset is too small for the selected percentage. "
+            "The split must create at least one training row and one testing row."
+        )
+
     # Use every column except the prediction target and identifier
     feature_columns = [
         column
@@ -97,9 +115,14 @@ def decision_tree(
 
         # Keep class proportions similar in training and testing data
         # when every class has enough rows
+        class_count = target.nunique()
         stratify = (
             target
-            if target.value_counts().min() >= 2
+            if (
+                target.value_counts().min() >= 2
+                and estimated_train_rows >= class_count
+                and estimated_test_rows >= class_count
+            )
             else None
         )
 
@@ -150,7 +173,7 @@ def decision_tree(
     # Calculate classification metrics
     if task == "classification":
         labels = sorted(
-            set(target_test.astype(str))
+            set(target.astype(str))
             | set(pd.Series(predictions).astype(str))
         )
 
@@ -261,6 +284,7 @@ def decision_tree(
         "task": task,
         "task_reason": task_reason,
         "target": target_column,
+        "train_percent": train_percent,
         "feature_columns": feature_columns,
         "train_rows": len(features_train),
         "test_rows": len(features_test),
