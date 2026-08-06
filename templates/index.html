@@ -43,8 +43,63 @@
         <!-- Jinja selects the appropriate upload or modelling status message. -->
         {% if error %}
             <section>
-                <h2>Dataset upload failed</h2>
+                <h2>Request failed</h2>
                 <p>{{ error }}</p>
+            </section>
+
+        {% elif modelling_completed %}
+            <h2>Modelling completed</h2>
+
+            <section>
+                <h3>Dataset Summary</h3>
+                <p>
+                    Rows: {{ result["dataset"]["rows"] }}<br>
+                    Columns: {{ result["dataset"]["columns"] }}<br>
+                    Prediction target: {{ result["dataset"]["target"] }}
+                </p>
+            </section>
+
+            <section>
+                <h3>Decision Tree</h3>
+                <p>
+                    Model type: {{ result["decision_tree"]["task"] }}<br>
+                    Training rows: {{ result["decision_tree"]["train_rows"] }}<br>
+                    Testing rows: {{ result["decision_tree"]["test_rows"] }}
+                </p>
+
+                <h4>Metrics</h4>
+                <ul>
+                    {% for metric_name, metric_value
+                        in result["decision_tree"]["metrics"].items() %}
+                        <li>{{ metric_name }}: {{ metric_value }}</li>
+                    {% endfor %}
+                </ul>
+            </section>
+
+            <section>
+                <h3>K-Means</h3>
+                <p>
+                    Number of clusters: {{ result["kmeans"]["number_of_clusters"] }}<br>
+                    Rows used: {{ result["kmeans"]["rows_used"] }}
+                </p>
+
+                <h4>Metrics</h4>
+                <ul>
+                    {% for metric_name, metric_value
+                        in result["kmeans"]["metrics"].items() %}
+                        <li>{{ metric_name }}: {{ metric_value }}</li>
+                    {% endfor %}
+                </ul>
+
+                <h4>Cluster Sizes</h4>
+                <ul>
+                    {% for cluster_name, row_count
+                        in result["kmeans"]["cluster_counts"].items() %}
+                        <li>{{ cluster_name }}: {{ row_count }} rows</li>
+                    {% endfor %}
+                </ul>
+
+                <p>{{ result["kmeans"]["note"] }}</p>
             </section>
 
         {% elif uploaded_dataset %}
@@ -84,71 +139,39 @@
                     </tbody>
                 </table>
 
-                <p>
-                    The next stage will allow the user to select a prediction target
-                    before running Decision Tree and K-Means.
-                </p>
-            </section>
+                <h3>Select Prediction Target</h3>
 
-        {% elif modelling_completed %}
-            <h2>Modelling completed</h2>
+                <!-- Send the saved filename and chosen target to the model route. -->
+                <form method="post" action="{{ url_for('run_models') }}">
+                    <input
+                        name="stored_filename"
+                        type="hidden"
+                        value="{{ uploaded_dataset['stored_filename'] }}"
+                    >
+                    <input
+                        name="original_filename"
+                        type="hidden"
+                        value="{{ uploaded_dataset['filename'] }}"
+                    >
 
-            <section>
-                <h3>Dataset Summary</h3>
-                <p>
-                    Rows: {{ result["dataset"]["rows"] }}<br>
-                    Columns: {{ result["dataset"]["columns"] }}<br>
-                    Prediction target: {{ result["dataset"]["target"] }}
-                </p>
-            </section>
+                    <label for="target-column">
+                        Which column should the Decision Tree predict?
+                    </label>
+                    <select id="target-column" name="target_column" required>
+                        <option value="" selected disabled>
+                            Choose a target column
+                        </option>
+                        {% for column_name in uploaded_dataset["column_names"] %}
+                            <option value="{{ column_name }}">
+                                {{ column_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
 
-            <section>
-                <h3>Decision Tree</h3>
-                <p>
-                    Model type: {{ result["decision_tree"]["task"] }}<br>
-                    Training rows: {{ result["decision_tree"]["train_rows"] }}<br>
-                    Testing rows: {{ result["decision_tree"]["test_rows"] }}
-                </p>
-
-                <h4>Metrics</h4>
-                <ul>
-                    {% for metric_name, metric_value
-                        in result["decision_tree"]["metrics"].items() %}
-                        <li>
-                            {{ metric_name }}: {{ metric_value }}
-                        </li>
-                    {% endfor %}
-                </ul>
-            </section>
-
-            <section>
-                <h3>K-Means</h3>
-                <p>
-                    Number of clusters: {{ result["kmeans"]["number_of_clusters"] }}<br>
-                    Rows used: {{ result["kmeans"]["rows_used"] }}
-                </p>
-
-                <h4>Metrics</h4>
-                <ul>
-                    {% for metric_name, metric_value
-                        in result["kmeans"]["metrics"].items() %}
-                        <li>
-                            {{ metric_name }}: {{ metric_value }}
-                        </li>
-                    {% endfor %}
-                </ul>
-
-                <h4>Cluster Sizes</h4>
-                <ul>
-                    {% for cluster_name, row_count
-                        in result["kmeans"]["cluster_counts"].items() %}
-                        <li>
-                            {{ cluster_name }}: {{ row_count }} rows
-                        </li>
-                    {% endfor %}
-                </ul>
-
-                <p>{{ result["kmeans"]["note"] }}</p>
+                    <button type="submit">
+                        Run Decision Tree and K-Means
+                    </button>
+                </form>
             </section>
 
         {% else %}
