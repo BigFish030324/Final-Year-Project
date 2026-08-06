@@ -168,68 +168,77 @@
                         value="{{ uploaded_dataset['filename'] }}"
                     >
 
-                    <label for="target-column">
-                        Which column should the Decision Tree predict?
-                    </label>
-                    <select id="target-column" name="target_column" required>
-                        <option
-                            value=""
-                            disabled
-                            {% if not selected_target %}selected{% endif %}
-                        >
-                            Choose a target column
-                        </option>
-                        {% for column_name in uploaded_dataset["column_names"] %}
+                    <!-- Each div creates a separate row in the modelling form. -->
+                    <div>
+                        <label for="target-column">
+                            Which column should the Decision Tree predict?
+                        </label>
+                        <select id="target-column" name="target_column" required>
                             <option
-                                value="{{ column_name }}"
-                                {% if column_name == selected_target %}selected{% endif %}
+                                value=""
+                                disabled
+                                {% if not selected_target %}selected{% endif %}
                             >
-                                {{ column_name }}
+                                Choose a target column
                             </option>
-                        {% endfor %}
-                    </select>
+                            {% for column_name in uploaded_dataset["column_names"] %}
+                                <option
+                                    value="{{ column_name }}"
+                                    {% if column_name == selected_target %}selected{% endif %}
+                                >
+                                    {{ column_name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
 
-                    <label for="train-percent">
-                        Decision Tree training percentage:
-                    </label>
-                    <input
-                        id="train-percent"
-                        name="train_percent"
-                        type="number"
-                        min="1"
-                        max="99"
-                        step="1"
-                        value="{{ selected_train_percent }}"
-                        required
-                    >
-                    <small>
-                        Allowed range: 1 to 99%. The remaining percentage is used
-                        for testing. Very low training or testing percentages can
-                        produce unreliable results.
-                    </small>
+                    <div>
+                        <label for="train-percent">
+                            Decision Tree training percentage:
+                        </label>
+                        <input
+                            id="train-percent"
+                            name="train_percent"
+                            type="number"
+                            min="1"
+                            max="99"
+                            step="1"
+                            value="{{ selected_train_percent }}"
+                            required
+                        >
+                        <small>
+                            Allowed range: 1 to 99%. The remaining percentage is used
+                            for testing. Very low training or testing percentages can
+                            produce unreliable results.
+                        </small>
+                    </div>
 
-                    <label for="cluster-count">
-                        Number of K-Means clusters:
-                    </label>
-                    <input
-                        id="cluster-count"
-                        name="number_of_clusters"
-                        type="number"
-                        min="2"
-                        max="{{ uploaded_dataset['rows'] - 1 }}"
-                        step="1"
-                        value="{{ selected_cluster_count }}"
-                        required
-                    >
-                    <small>
-                        Allowed range: 2 to {{ uploaded_dataset["rows"] - 1 }}.
-                        A high cluster count can create tiny or meaningless groups
-                        and requires more processing.
-                    </small>
+                    <div>
+                        <label for="cluster-count">
+                            Number of K-Means clusters:
+                        </label>
+                        <input
+                            id="cluster-count"
+                            name="number_of_clusters"
+                            type="number"
+                            min="2"
+                            max="{{ uploaded_dataset['rows'] - 1 }}"
+                            step="1"
+                            value="{{ selected_cluster_count }}"
+                            required
+                        >
+                        <small>
+                            Allowed range: 2 to {{ uploaded_dataset["rows"] - 1 }}.
+                            A high cluster count can create tiny or meaningless groups
+                            and requires more processing.
+                        </small>
+                    </div>
 
-                    <button type="submit">
-                        Run Decision Tree and K-Means
-                    </button>
+                    <div>
+                        <button type="submit">
+                            Run Decision Tree and K-Means
+                        </button>
+                    </div>
                 </form>
             </section>
 
