@@ -20,19 +20,6 @@ from model_library.model_helpers import safe_json_value
 
 
 # ----------------------------------------------------
-# Dataset
-# ----------------------------------------------------
-
-DATASET_PATH = Path(
-    r"C:\Users\Lenovo\Desktop\Final-Year-Project\sample_dataset\Iris.csv"
-)
-
-# This is for testing dataset purpose
-TARGET_COLUMN = "Species"
-TRAIN_PERCENT = 70
-RANDOM_SEED = 42
-
-# ----------------------------------------------------
 # Read Dataset
 # ----------------------------------------------------
 
@@ -98,7 +85,8 @@ def inspect_dataset(
 
     return {
         "filename": original_filename,
-        "stored_path": str(dataset_path),
+        # Give the webpage only the generated filename, not a full computer path.
+        "stored_filename": dataset_path.name,
         "rows": len(frame),
         "columns": len(frame.columns),
         "column_names": list(frame.columns),

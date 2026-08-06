@@ -81,3 +81,39 @@ def save_uploaded_dataset(
         )
 
     return stored_path, original_filename
+
+
+# ----------------------------------------------------
+# Find a Previously Uploaded Dataset
+# ----------------------------------------------------
+
+def load_uploaded_dataset(stored_filename: str) -> Path:
+    # The webpage sends only the generated filename back to Flask.
+    # Never accept a complete path supplied by the browser.
+    safe_filename = secure_filename(stored_filename)
+
+    if not safe_filename or safe_filename != stored_filename:
+        raise UserError(
+            "The uploaded dataset reference is invalid. Upload the file again."
+        )
+
+    dataset_path = (UPLOAD_DIRECTORY / safe_filename).resolve()
+    upload_directory = UPLOAD_DIRECTORY.resolve()
+
+    # Confirm that the resolved file remains directly inside uploads.
+    if dataset_path.parent != upload_directory:
+        raise UserError(
+            "The uploaded dataset reference is invalid. Upload the file again."
+        )
+
+    if dataset_path.suffix.lower() not in ALLOWED_EXTENSIONS:
+        raise UserError(
+            "Only CSV and XLSX datasets are supported."
+        )
+
+    if not dataset_path.is_file():
+        raise UserError(
+            "The uploaded dataset is no longer available. Upload it again."
+        )
+
+    return dataset_path
