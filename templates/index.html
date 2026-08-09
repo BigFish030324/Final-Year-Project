@@ -6,6 +6,14 @@
     <!-- Show layout correctly on different devices such as phones and tablets -->
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Dataset Modelling</title>
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/main.css') }}"
+    >
+    <script
+        src="{{ url_for('static', filename='js/model_settings.js') }}"
+        defer
+    ></script>
 </head>
 
 <body>
@@ -77,6 +85,8 @@
                 <p>
                     Model type: {{ result["decision_tree"]["task"] }}<br>
                     Training percentage: {{ result["decision_tree"]["train_percent"] }}%<br>
+                    Testing percentage: {{ 100 - result["decision_tree"]["train_percent"] }}%<br>
+                    Total percentage: 100%<br>
                     Training rows: {{ result["decision_tree"]["train_rows"] }}<br>
                     Testing rows: {{ result["decision_tree"]["test_rows"] }}
                 </p>
@@ -85,9 +95,71 @@
                 <ul>
                     {% for metric_name, metric_value
                         in result["decision_tree"]["metrics"].items() %}
-                        <li>{{ metric_name }}: {{ metric_value }}</li>
+                        <li>
+                            {{ metric_name | replace("_", " ") | title }}:
+                            {{ metric_value }}
+                        </li>
                     {% endfor %}
                 </ul>
+
+                {% if result["decision_tree"]["task"] == "classification" %}
+                    <h4>Confusion Matrix</h4>
+                    <p>
+                        Rows are the actual classes and columns are the
+                        classes predicted by the Decision Tree.
+                    </p>
+
+                    {% set labels = result["decision_tree"]["details"]["labels"] %}
+                    {% set matrix = result["decision_tree"]["details"]["confusion_matrix"] %}
+
+                    <div class="table-container">
+                        <table class="result-table">
+                            <thead>
+                                <tr>
+                                    <th>Actual \ Predicted</th>
+                                    {% for label in labels %}
+                                        <th>{{ label }}</th>
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for matrix_row in matrix %}
+                                    {% set actual_label = labels[loop.index0] %}
+                                    <tr>
+                                        <th>{{ actual_label }}</th>
+                                        {% for cell_value in matrix_row %}
+                                            <td>{{ cell_value }}</td>
+                                        {% endfor %}
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                {% else %}
+                    <h4>Example Predictions</h4>
+                    <div class="table-container">
+                        <table class="result-table">
+                            <thead>
+                                <tr>
+                                    <th>Actual value</th>
+                                    <th>Predicted value</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for actual_value
+                                    in result["decision_tree"]["details"]["actual"] %}
+                                    <tr>
+                                        <td>{{ actual_value }}</td>
+                                        <td>
+                                            {{ result["decision_tree"]["details"]["predicted"][loop.index0] }}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% endif %}
             </section>
 
             <section>
@@ -106,12 +178,28 @@
                 </ul>
 
                 <h4>Cluster Sizes</h4>
-                <ul>
+                <div class="cluster-chart">
                     {% for cluster_name, row_count
                         in result["kmeans"]["cluster_counts"].items() %}
-                        <li>{{ cluster_name }}: {{ row_count }} rows</li>
+                        {% set cluster_percent =
+                            (row_count / result["kmeans"]["rows_used"] * 100)
+                            | round(1)
+                        %}
+
+                        <div class="cluster-row">
+                            <strong>{{ cluster_name }}</strong>
+                            <div class="cluster-track">
+                                <div
+                                    class="cluster-bar"
+                                    style="width: {{ cluster_percent }}%;"
+                                ></div>
+                            </div>
+                            <span>
+                                {{ row_count }} rows ({{ cluster_percent }}%)
+                            </span>
+                        </div>
                     {% endfor %}
-                </ul>
+                </div>
 
                 <p>{{ result["kmeans"]["note"] }}</p>
             </section>
@@ -207,9 +295,40 @@
                             required
                         >
                         <small>
-                            Allowed range: 1 to 99%. The remaining percentage is used
+                            Allowed range: 1% to 99%. The remaining percentage is used
                             for testing. Very low training or testing percentages can
                             produce unreliable results.
+                        </small>
+                    </div>
+
+                    <div>
+                        <label for="test-percent">
+                            Decision Tree testing percentage:
+                        </label>
+                        <input
+                            id="test-percent"
+                            type="number"
+                            value="{{ 100 - selected_train_percent }}"
+                            readonly
+                        >
+                        <small>
+                            Testing is automatically calculated as
+                            100% minus the training percentage.
+                        </small>
+                    </div>
+
+                    <div>
+                        <label for="total-percent">
+                            Total percentage:
+                        </label>
+                        <input
+                            id="total-percent"
+                            type="number"
+                            value="100"
+                            readonly
+                        >
+                        <small>
+                            Training and testing always total 100%.
                         </small>
                     </div>
 

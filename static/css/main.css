@@ -1,0 +1,75 @@
+/* Keep the first website design simple and readable. */
+body {
+    font-family: Arial, sans-serif;
+    line-height: 1.5;
+    margin: 0;
+    padding: 20px;
+}
+
+main {
+    margin: 0 auto;
+    max-width: 1100px;
+}
+
+section {
+    margin-bottom: 30px;
+}
+
+form > div {
+    margin: 14px 0;
+}
+
+label,
+small {
+    display: block;
+}
+
+small {
+    margin-top: 4px;
+}
+
+input,
+select,
+button {
+    margin-top: 5px;
+    padding: 6px;
+}
+
+/* Allow wide dataset and result tables to scroll on small screens. */
+.table-container {
+    overflow-x: auto;
+}
+
+.result-table {
+    border-collapse: collapse;
+    min-width: 420px;
+}
+
+.result-table th,
+.result-table td {
+    border: 1px solid #999999;
+    padding: 8px 12px;
+    text-align: center;
+}
+
+/* Display every K-Means cluster as a proportional horizontal bar. */
+.cluster-chart {
+    max-width: 700px;
+}
+
+.cluster-row {
+    margin-bottom: 14px;
+}
+
+.cluster-track {
+    background-color: #dddddd;
+    height: 18px;
+    margin: 4px 0;
+    width: 100%;
+}
+
+.cluster-bar {
+    background-color: #3578c8;
+    height: 100%;
+    min-width: 2px;
+}
