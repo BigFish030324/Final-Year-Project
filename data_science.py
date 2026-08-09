@@ -128,27 +128,57 @@ def run_dataset(
     target_column: str,
     train_percent: int = 70,
     number_of_clusters: int = 3,
+    selected_models: list[str] | tuple[str, ...] = (
+        "decision_tree",
+        "kmeans",
+    ),
     seed: int = 42,
 ) -> dict[str, Any]:
     frame = read_dataset(dataset_path)
     print_dataset_summary(frame, dataset_path, target_column,)
 
+    allowed_models = {
+        "decision_tree",
+        "kmeans",
+    }
+    model_selection = set(selected_models)
+
+    if not model_selection:
+        raise UserError(
+            "Choose at least one model to run."
+        )
+
+    if not model_selection.issubset(allowed_models):
+        raise UserError(
+            "The selected model is not available."
+        )
+
+    decision_tree_result = None
+    kmeans_result = None
+
     # ----------------------------------------------------
     # Run Decision Tree
     # ----------------------------------------------------
-    decision_tree_result = decision_tree(frame, target_column=target_column, train_percent=train_percent, seed=seed,)
-    print_model_result(decision_tree_result)
+    if "decision_tree" in model_selection:
+        decision_tree_result = decision_tree(
+            frame,
+            target_column=target_column,
+            train_percent=train_percent,
+            seed=seed,
+        )
+        print_model_result(decision_tree_result)
 
     # ----------------------------------------------------
     # Run K-Means
     # ----------------------------------------------------
-    kmeans_result = k_means(
-        frame,
-        target_column=target_column,
-        number_of_clusters=number_of_clusters,
-        seed=seed,
-    )
-    print_model_result(kmeans_result)
+    if "kmeans" in model_selection:
+        kmeans_result = k_means(
+            frame,
+            target_column=target_column,
+            number_of_clusters=number_of_clusters,
+            seed=seed,
+        )
+        print_model_result(kmeans_result)
 
     print("\n" + "=" * 70)
     print("MODELLING COMPLETED SUCCESSFULLY")
@@ -162,6 +192,7 @@ def run_dataset(
             "columns": len(frame.columns),
             "target": target_column,
         },
+        "models_run": list(selected_models),
         "decision_tree": decision_tree_result,
         "kmeans": kmeans_result,
     }

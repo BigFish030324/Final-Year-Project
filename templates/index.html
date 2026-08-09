@@ -80,13 +80,13 @@
                 </p>
             </section>
 
+            {% if result["decision_tree"] %}
             <section>
                 <h3>Decision Tree</h3>
                 <p>
                     Model type: {{ result["decision_tree"]["task"] }}<br>
                     Training percentage: {{ result["decision_tree"]["train_percent"] }}%<br>
                     Testing percentage: {{ 100 - result["decision_tree"]["train_percent"] }}%<br>
-                    Total percentage: 100%<br>
                     Training rows: {{ result["decision_tree"]["train_rows"] }}<br>
                     Testing rows: {{ result["decision_tree"]["test_rows"] }}
                 </p>
@@ -161,7 +161,9 @@
                     </div>
                 {% endif %}
             </section>
+            {% endif %}
 
+            {% if result["kmeans"] %}
             <section>
                 <h3>K-Means</h3>
                 <p>
@@ -203,6 +205,7 @@
 
                 <p>{{ result["kmeans"]["note"] }}</p>
             </section>
+            {% endif %}
 
         {% elif uploaded_dataset %}
             <section>
@@ -241,7 +244,7 @@
                     </tbody>
                 </table>
 
-                <h3>Select Prediction Target</h3>
+                <h3>Select Models and Target</h3>
 
                 <!-- Send the saved filename and chosen target to the model route. -->
                 <form method="post" action="{{ url_for('run_models') }}">
@@ -256,10 +259,44 @@
                         value="{{ uploaded_dataset['filename'] }}"
                     >
 
+                    <fieldset>
+                        <legend>Models to run</legend>
+
+                        <div>
+                            <input
+                                id="select-decision-tree"
+                                name="selected_models"
+                                type="checkbox"
+                                value="decision_tree"
+                                {% if "decision_tree" in selected_models %}checked{% endif %}
+                            >
+                            <label for="select-decision-tree">
+                                Decision Tree
+                            </label>
+                        </div>
+
+                        <div>
+                            <input
+                                id="select-kmeans"
+                                name="selected_models"
+                                type="checkbox"
+                                value="kmeans"
+                                {% if "kmeans" in selected_models %}checked{% endif %}
+                            >
+                            <label for="select-kmeans">
+                                K-Means
+                            </label>
+                        </div>
+
+                        <small>
+                            Choose one model or select both models for comparison.
+                        </small>
+                    </fieldset>
+
                     <!-- Each div creates a separate row in the modelling form. -->
                     <div>
                         <label for="target-column">
-                            Which column should the Decision Tree predict?
+                            Which column should be the target?
                         </label>
                         <select id="target-column" name="target_column" required>
                             <option
@@ -280,7 +317,7 @@
                         </select>
                     </div>
 
-                    <div>
+                    <div id="decision-tree-settings">
                         <label for="train-percent">
                             Decision Tree training percentage:
                         </label>
@@ -301,7 +338,7 @@
                         </small>
                     </div>
 
-                    <div>
+                    <div class="decision-tree-split-setting">
                         <label for="test-percent">
                             Decision Tree testing percentage:
                         </label>
@@ -317,22 +354,7 @@
                         </small>
                     </div>
 
-                    <div>
-                        <label for="total-percent">
-                            Total percentage:
-                        </label>
-                        <input
-                            id="total-percent"
-                            type="number"
-                            value="100"
-                            readonly
-                        >
-                        <small>
-                            Training and testing always total 100%.
-                        </small>
-                    </div>
-
-                    <div>
+                    <div id="kmeans-settings">
                         <label for="cluster-count">
                             Number of K-Means clusters:
                         </label>
@@ -355,7 +377,7 @@
 
                     <div>
                         <button type="submit">
-                            Run Decision Tree and K-Means
+                            Run Selected Models
                         </button>
                     </div>
                 </form>
