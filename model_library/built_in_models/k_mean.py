@@ -21,6 +21,7 @@ def k_means(
     frame: pd.DataFrame,
     target_column: str,
     number_of_clusters: int = 3,
+    parameters: dict[str, Any] | None = None,
     seed: int = 42,
 ) -> dict[str, Any]:
     from sklearn.cluster import KMeans
@@ -66,12 +67,22 @@ def k_means(
     preprocessor = build_preprocessor(features)
     prepared_features = preprocessor.fit_transform(features)
 
+    # Start with the same K-Means defaults as the test environment.
+    model_parameters = {
+        "init": "k-means++",
+        "n_init": 10,
+        "max_iter": 300,
+        "tolerance": 0.0001,
+    }
+    model_parameters.update(parameters or {})
+
     # Create the K-Means model
     model = KMeans(
         n_clusters=number_of_clusters,
-        init="k-means++",
-        n_init=10,
-        max_iter=300,
+        init=model_parameters["init"],
+        n_init=model_parameters["n_init"],
+        max_iter=model_parameters["max_iter"],
+        tol=model_parameters["tolerance"],
         random_state=seed,
     )
 
@@ -148,6 +159,7 @@ def k_means(
         "feature_columns": feature_columns,
         "rows_used": len(features),
         "number_of_clusters": number_of_clusters,
+        "parameters": model_parameters,
         "metrics": metrics,
         "cluster_counts": {
             f"Cluster {cluster_number}": int(count)

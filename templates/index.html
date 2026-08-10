@@ -1,11 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!-- Ensure the text in browser is displayed correctly -->
+    <!-- Ensure the text in browser is displayed correctly. -->
     <meta charset="utf-8">
-    <!-- Show layout correctly on different devices such as phones and tablets -->
+
+    <!-- Show the layout correctly on computers, tablets and phones. -->
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Dataset Modelling</title>
+
+    <title>Data Model Comparison</title>
+
     <link
         rel="stylesheet"
         href="{{ url_for('static', filename='css/main.css') }}"
@@ -17,255 +20,318 @@
 </head>
 
 <body>
-    <main>
-        <h1>Dataset Modelling Starter</h1>
+    <div class="application-layout">
+        <!-- Red: prototype navigation menu. -->
+        <aside class="menu-panel">
+            <h2>Prototype Menu</h2>
 
-        <section>
-            <h2>Upload Dataset</h2>
-
-            <!-- enctype allows the browser to send the selected file to Flask. -->
-            <form method="post" enctype="multipart/form-data">
-                <label for="dataset-upload">
-                    Choose a CSV or XLSX dataset:
-                </label>
-
-                <input
-                    id="dataset-upload"
-                    name="dataset"
-                    type="file"
-                    accept=".csv,.xlsx"
-                    required
-                >
-
-                <button type="submit">
-                    Render Dataset
-                </button>
-            </form>
+            <nav aria-label="Main navigation">
+                <a href="#comparison" data-view-link="comparison">
+                    Comparison
+                </a>
+                <a href="#model-library" data-view-link="model-library">
+                    Model Library
+                </a>
+            </nav>
 
             <p>
-                Only CSV and XLSX files are accepted.<br>
-                Models will not run until a target column is selected in the next stage.
+                Choose models in Model Library, then return to Comparison.
             </p>
-        </section>
+        </aside>
 
-        <!-- Show an error without hiding a successfully uploaded dataset. -->
-        {% if error %}
-            <section>
-                <h2>Request failed</h2>
-                <p>{{ error }}</p>
-            </section>
-        {% endif %}
+        <!-- Blue: the menu changes which middle workspace is visible. -->
+        <main class="comparison-panel">
+            <!-- Comparison appears first when the website opens. -->
+            <div id="comparison" class="workspace-view">
+                <header class="page-heading">
+                    <p class="section-label">Comparison</p>
+                    <h1>Side-by-side Data Model Comparison</h1>
+                </header>
 
-        <!-- Jinja selects the appropriate upload or modelling status section. -->
-        {% if modelling_completed %}
-            <h2>Modelling completed</h2>
+                <!-- 1. Train/test split appears above dataset upload. -->
+                <section class="content-card split-section">
+                    <h2>Train Test Split</h2>
 
-            {% if modelling_warnings %}
-                <section>
-                    <h3>Modelling Warnings</h3>
-                    <ul>
-                        {% for warning in modelling_warnings %}
-                            <li>{{ warning }}</li>
-                        {% endfor %}
-                    </ul>
-                </section>
-            {% endif %}
-
-            <section>
-                <h3>Dataset Summary</h3>
-                <p>
-                    Rows: {{ result["dataset"]["rows"] }}<br>
-                    Columns: {{ result["dataset"]["columns"] }}<br>
-                    Prediction target: {{ result["dataset"]["target"] }}
-                </p>
-            </section>
-
-            {% if result["decision_tree"] %}
-            <section>
-                <h3>Decision Tree</h3>
-                <p>
-                    Model type: {{ result["decision_tree"]["task"] }}<br>
-                    Training percentage: {{ result["decision_tree"]["train_percent"] }}%<br>
-                    Testing percentage: {{ 100 - result["decision_tree"]["train_percent"] }}%<br>
-                    Training rows: {{ result["decision_tree"]["train_rows"] }}<br>
-                    Testing rows: {{ result["decision_tree"]["test_rows"] }}
-                </p>
-
-                <h4>Metrics</h4>
-                <ul>
-                    {% for metric_name, metric_value
-                        in result["decision_tree"]["metrics"].items() %}
-                        <li>
-                            {{ metric_name | replace("_", " ") | title }}:
-                            {{ metric_value }}
-                        </li>
-                    {% endfor %}
-                </ul>
-
-                {% if result["decision_tree"]["task"] == "classification" %}
-                    <h4>Confusion Matrix</h4>
-                    <p>
-                        Rows are the actual classes and columns are the
-                        classes predicted by the Decision Tree.
-                    </p>
-
-                    {% set labels = result["decision_tree"]["details"]["labels"] %}
-                    {% set matrix = result["decision_tree"]["details"]["confusion_matrix"] %}
-
-                    <div class="table-container">
-                        <table class="result-table">
-                            <thead>
-                                <tr>
-                                    <th>Actual \ Predicted</th>
-                                    {% for label in labels %}
-                                        <th>{{ label }}</th>
-                                    {% endfor %}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for matrix_row in matrix %}
-                                    {% set actual_label = labels[loop.index0] %}
-                                    <tr>
-                                        <th>{{ actual_label }}</th>
-                                        {% for cell_value in matrix_row %}
-                                            <td>{{ cell_value }}</td>
-                                        {% endfor %}
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-
-                {% else %}
-                    <h4>Example Predictions</h4>
-                    <div class="table-container">
-                        <table class="result-table">
-                            <thead>
-                                <tr>
-                                    <th>Actual value</th>
-                                    <th>Predicted value</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for actual_value
-                                    in result["decision_tree"]["details"]["actual"] %}
-                                    <tr>
-                                        <td>{{ actual_value }}</td>
-                                        <td>
-                                            {{ result["decision_tree"]["details"]["predicted"][loop.index0] }}
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                {% endif %}
-            </section>
-            {% endif %}
-
-            {% if result["kmeans"] %}
-            <section>
-                <h3>K-Means</h3>
-                <p>
-                    Number of clusters: {{ result["kmeans"]["number_of_clusters"] }}<br>
-                    Rows used: {{ result["kmeans"]["rows_used"] }}
-                </p>
-
-                <h4>Metrics</h4>
-                <ul>
-                    {% for metric_name, metric_value
-                        in result["kmeans"]["metrics"].items() %}
-                        <li>{{ metric_name }}: {{ metric_value }}</li>
-                    {% endfor %}
-                </ul>
-
-                <h4>Cluster Sizes</h4>
-                <div class="cluster-chart">
-                    {% for cluster_name, row_count
-                        in result["kmeans"]["cluster_counts"].items() %}
-                        {% set cluster_percent =
-                            (row_count / result["kmeans"]["rows_used"] * 100)
-                            | round(1)
-                        %}
-
-                        <div class="cluster-row">
-                            <strong>{{ cluster_name }}</strong>
-                            <div class="cluster-track">
-                                <div
-                                    class="cluster-bar"
-                                    style="width: {{ cluster_percent }}%;"
-                                ></div>
-                            </div>
-                            <span>
-                                {{ row_count }} rows ({{ cluster_percent }}%)
-                            </span>
+                    <div class="split-grid">
+                        <div>
+                            <label for="train-percent">
+                                Training percentage:
+                            </label>
+                            <input
+                                id="train-percent"
+                                type="number"
+                                min="1"
+                                max="99"
+                                step="1"
+                                value="{{ selected_train_percent }}"
+                                required
+                            >
+                            <small>Allowed range: 1% to 99%.</small>
                         </div>
-                    {% endfor %}
-                </div>
-
-                <p>{{ result["kmeans"]["note"] }}</p>
-            </section>
-            {% endif %}
-
-        {% elif uploaded_dataset %}
-            <section>
-                <h2>Dataset uploaded successfully</h2>
-
-                <p>
-                    Filename: {{ uploaded_dataset["filename"] }}<br>
-                    Rows: {{ uploaded_dataset["rows"] }}<br>
-                    Columns: {{ uploaded_dataset["columns"] }}
-                </p>
-
-                <h3>Available Columns</h3>
-                <ul>
-                    {% for column_name in uploaded_dataset["column_names"] %}
-                        <li>{{ column_name }}</li>
-                    {% endfor %}
-                </ul>
-
-                <h3>First Five Rows</h3>
-                <table border="1">
-                    <thead>
-                        <tr>
-                            {% for column_name in uploaded_dataset["column_names"] %}
-                                <th>{{ column_name }}</th>
-                            {% endfor %}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for row in uploaded_dataset["preview"] %}
-                            <tr>
-                                {% for column_name in uploaded_dataset["column_names"] %}
-                                    <td>{{ row[column_name] }}</td>
-                                {% endfor %}
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-
-                <h3>Select Models and Target</h3>
-
-                <!-- Send the saved filename and chosen target to the model route. -->
-                <form method="post" action="{{ url_for('run_models') }}">
-                    <input
-                        name="stored_filename"
-                        type="hidden"
-                        value="{{ uploaded_dataset['stored_filename'] }}"
-                    >
-                    <input
-                        name="original_filename"
-                        type="hidden"
-                        value="{{ uploaded_dataset['filename'] }}"
-                    >
-
-                    <fieldset>
-                        <legend>Models to run</legend>
 
                         <div>
+                            <label for="test-percent">
+                                Testing percentage:
+                            </label>
+                            <input
+                                id="test-percent"
+                                type="number"
+                                value="{{ 100 - selected_train_percent }}"
+                                readonly
+                            >
+                            <small>Automatically calculated from training.</small>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 2. One button uploads the dataset and renders all results. -->
+                <section class="content-card">
+                    <h2>Upload Dataset</h2>
+
+                    <!-- enctype allows the browser to send a file to Flask. -->
+                    <form
+                        id="upload-form"
+                        method="post"
+                        enctype="multipart/form-data"
+                    >
+                        <input
+                            id="upload-train-percent"
+                            name="train_percent"
+                            type="hidden"
+                            value="{{ selected_train_percent }}"
+                        >
+                        <div id="upload-model-fields"></div>
+
+                        <label for="dataset-upload">
+                            Choose a CSV or XLSX dataset:
+                        </label>
+                        <input
+                            id="dataset-upload"
+                            name="dataset"
+                            type="file"
+                            accept=".csv,.xlsx"
+                            required
+                        >
+
+                        <button type="submit">
+                            Render Dataset
+                        </button>
+                    </form>
+
+                    <p>
+                        Only CSV and XLSX files are accepted. The final column
+                        is automatically used as the prediction target.
+                    </p>
+                </section>
+
+                {% if error %}
+                    <section class="content-card error-card">
+                        <h2>Request Failed</h2>
+                        <p>{{ error }}</p>
+                    </section>
+                {% endif %}
+
+                {% if uploaded_dataset %}
+                    <section class="content-card">
+                        <h2>Dataset Preview</h2>
+
+                        <p>
+                            Filename: {{ uploaded_dataset["filename"] }}<br>
+                            Rows: {{ uploaded_dataset["rows"] }}<br>
+                            Columns: {{ uploaded_dataset["columns"] }}
+                        </p>
+
+                        <div class="table-container">
+                            <table class="result-table preview-table">
+                                <thead>
+                                    <tr>
+                                        {% for column_name in uploaded_dataset["column_names"] %}
+                                            <th>{{ column_name }}</th>
+                                        {% endfor %}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in uploaded_dataset["preview"] %}
+                                        <tr>
+                                            {% for column_name in uploaded_dataset["column_names"] %}
+                                                <td>{{ row[column_name] }}</td>
+                                            {% endfor %}
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                {% endif %}
+
+                <!-- 3. The same Render Dataset request returns charts and results. -->
+                {% if modelling_completed %}
+                    <section class="content-card">
+                        <h2>Modelling Completed</h2>
+                        <p>
+                            Rows: {{ result["dataset"]["rows"] }}<br>
+                            Columns: {{ result["dataset"]["columns"] }}<br>
+                            Prediction target: {{ result["dataset"]["target"] }}
+                        </p>
+                    </section>
+
+                    {% if modelling_warnings %}
+                        <section class="content-card warning-card">
+                            <h2>Modelling Warnings</h2>
+                            <ul>
+                                {% for warning in modelling_warnings %}
+                                    <li>{{ warning }}</li>
+                                {% endfor %}
+                            </ul>
+                        </section>
+                    {% endif %}
+
+                    {% if result["decision_tree"] %}
+                        <section class="content-card result-section">
+                            <h2>Decision Tree Results</h2>
+                            <p>
+                                Model type: {{ result["decision_tree"]["task"] }}<br>
+                                Training percentage: {{ result["decision_tree"]["train_percent"] }}%<br>
+                                Testing percentage: {{ 100 - result["decision_tree"]["train_percent"] }}%<br>
+                                Training rows: {{ result["decision_tree"]["train_rows"] }}<br>
+                                Testing rows: {{ result["decision_tree"]["test_rows"] }}
+                            </p>
+
+                            <h3>Metrics</h3>
+                            <ul class="metric-list">
+                                {% for metric_name, metric_value
+                                    in result["decision_tree"]["metrics"].items() %}
+                                    <li>
+                                        {{ metric_name | replace("_", " ") | title }}:
+                                        {{ metric_value }}
+                                    </li>
+                                {% endfor %}
+                            </ul>
+
+                            {% if result["decision_tree"]["task"] == "classification" %}
+                                <h3>Confusion Matrix</h3>
+                                <p>Rows are actual classes and columns are predicted classes.</p>
+
+                                {% set labels = result["decision_tree"]["details"]["labels"] %}
+                                {% set matrix = result["decision_tree"]["details"]["confusion_matrix"] %}
+
+                                <div class="table-container">
+                                    <table class="result-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Actual \ Predicted</th>
+                                                {% for label in labels %}
+                                                    <th>{{ label }}</th>
+                                                {% endfor %}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for matrix_row in matrix %}
+                                                {% set actual_label = labels[loop.index0] %}
+                                                <tr>
+                                                    <th>{{ actual_label }}</th>
+                                                    {% for cell_value in matrix_row %}
+                                                        <td>{{ cell_value }}</td>
+                                                    {% endfor %}
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <h3>Example Predictions</h3>
+                                <div class="table-container">
+                                    <table class="result-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Actual value</th>
+                                                <th>Predicted value</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for actual_value
+                                                in result["decision_tree"]["details"]["actual"] %}
+                                                <tr>
+                                                    <td>{{ actual_value }}</td>
+                                                    <td>
+                                                        {{ result["decision_tree"]["details"]["predicted"][loop.index0] }}
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% endif %}
+                        </section>
+                    {% endif %}
+
+                    {% if result["kmeans"] %}
+                        <section class="content-card result-section">
+                            <h2>K-Means Results</h2>
+                            <p>
+                                Number of clusters: {{ result["kmeans"]["number_of_clusters"] }}<br>
+                                Rows used: {{ result["kmeans"]["rows_used"] }}
+                            </p>
+
+                            <h3>Metrics</h3>
+                            <ul class="metric-list">
+                                {% for metric_name, metric_value
+                                    in result["kmeans"]["metrics"].items() %}
+                                    <li>
+                                        {{ metric_name | replace("_", " ") | title }}:
+                                        {{ metric_value }}
+                                    </li>
+                                {% endfor %}
+                            </ul>
+
+                            <h3>Cluster Sizes</h3>
+                            <div class="cluster-chart">
+                                {% for cluster_name, row_count
+                                    in result["kmeans"]["cluster_counts"].items() %}
+                                    {% set cluster_percent =
+                                        (row_count / result["kmeans"]["rows_used"] * 100)
+                                        | round(1)
+                                    %}
+                                    <div class="cluster-row">
+                                        <strong>{{ cluster_name }}</strong>
+                                        <div class="cluster-track">
+                                            <div
+                                                class="cluster-bar"
+                                                style="width: {{ cluster_percent }}%;"
+                                            ></div>
+                                        </div>
+                                        <span>
+                                            {{ row_count }} rows ({{ cluster_percent }}%)
+                                        </span>
+                                    </div>
+                                {% endfor %}
+                            </div>
+
+                            <p>{{ result["kmeans"]["note"] }}</p>
+                        </section>
+                    {% endif %}
+                {% elif not uploaded_dataset %}
+                    <section class="content-card empty-state">
+                        <p>Charts and graphs will appear here after rendering.</p>
+                    </section>
+                {% endif %}
+            </div>
+
+            <!-- Model Library is a separate middle view selected from the menu. -->
+            <div id="model-library" class="workspace-view" hidden>
+                <header class="page-heading">
+                    <p class="section-label">Model Library</p>
+                    <h1>Select Data Models</h1>
+                </header>
+
+                <section class="content-card model-library-section">
+                    <h2>Models to Run</h2>
+
+                    <div class="model-library-options">
+                        <div class="model-option">
                             <input
                                 id="select-decision-tree"
-                                name="selected_models"
                                 type="checkbox"
                                 value="decision_tree"
                                 {% if "decision_tree" in selected_models %}checked{% endif %}
@@ -275,10 +341,9 @@
                             </label>
                         </div>
 
-                        <div>
+                        <div class="model-option">
                             <input
                                 id="select-kmeans"
-                                name="selected_models"
                                 type="checkbox"
                                 value="kmeans"
                                 {% if "kmeans" in selected_models %}checked{% endif %}
@@ -287,105 +352,154 @@
                                 K-Means
                             </label>
                         </div>
+                    </div>
 
-                        <small>
-                            Choose one model or select both models for comparison.
-                        </small>
-                    </fieldset>
+                    <p>
+                        Your choices are remembered when you return to Comparison.
+                    </p>
+                </section>
+            </div>
+        </main>
 
-                    <!-- Each div creates a separate row in the modelling form. -->
-                    <div>
-                        <label for="target-column">
-                            Which column should be the target?
-                        </label>
-                        <select id="target-column" name="target_column" required>
+        <!-- Green: parameters only. Model selection belongs to Model Library. -->
+        <aside id="parameters" class="parameters-panel">
+            <p class="section-label">Selected Model Settings</p>
+            <h2>Parameters</h2>
+
+            {% if uploaded_dataset %}
+                <div class="parameter-field">
+                    <label for="target-column">Prediction target:</label>
+                    <input
+                        id="target-column"
+                        type="text"
+                        value="{{ selected_target }}"
+                        readonly
+                    >
+                    <small>The final dataset column was selected automatically.</small>
+                </div>
+            {% else %}
+                <p>
+                    The final dataset column will automatically become the
+                    prediction target.
+                </p>
+            {% endif %}
+
+            <div id="decision-tree-settings" class="parameter-group">
+                <h3>Decision Tree</h3>
+
+                <div class="parameter-field">
+                    <label for="tree-criterion">Criterion:</label>
+                    <select id="tree-criterion" name="tree_criterion" form="upload-form">
+                        {% for value, label in [
+                            ("auto", "Auto"),
+                            ("gini", "Gini"),
+                            ("entropy", "Entropy"),
+                            ("log_loss", "Log Loss"),
+                            ("squared_error", "Squared Error"),
+                            ("friedman_mse", "Friedman MSE"),
+                            ("absolute_error", "Absolute Error"),
+                            ("poisson", "Poisson")
+                        ] %}
                             <option
-                                value=""
-                                disabled
-                                {% if not selected_target %}selected{% endif %}
-                            >
-                                Choose a target column
-                            </option>
-                            {% for column_name in uploaded_dataset["column_names"] %}
-                                <option
-                                    value="{{ column_name }}"
-                                    {% if column_name == selected_target %}selected{% endif %}
-                                >
-                                    {{ column_name }}
-                                </option>
-                            {% endfor %}
-                        </select>
-                    </div>
+                                value="{{ value }}"
+                                {% if decision_tree_parameters["criterion"] == value %}selected{% endif %}
+                            >{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                    <small>Auto chooses a suitable classification or regression rule.</small>
+                </div>
 
-                    <div id="decision-tree-settings">
-                        <label for="train-percent">
-                            Decision Tree training percentage:
-                        </label>
-                        <input
-                            id="train-percent"
-                            name="train_percent"
-                            type="number"
-                            min="1"
-                            max="99"
-                            step="1"
-                            value="{{ selected_train_percent }}"
-                            required
-                        >
-                        <small>
-                            Allowed range: 1% to 99%. The remaining percentage is used
-                            for testing. Very low training or testing percentages can
-                            produce unreliable results.
-                        </small>
-                    </div>
+                <div class="parameter-field">
+                    <label for="tree-splitter">Splitter:</label>
+                    <select id="tree-splitter" name="tree_splitter" form="upload-form">
+                        <option value="best" {% if decision_tree_parameters["splitter"] == "best" %}selected{% endif %}>Best</option>
+                        <option value="random" {% if decision_tree_parameters["splitter"] == "random" %}selected{% endif %}>Random</option>
+                    </select>
+                </div>
 
-                    <div class="decision-tree-split-setting">
-                        <label for="test-percent">
-                            Decision Tree testing percentage:
-                        </label>
-                        <input
-                            id="test-percent"
-                            type="number"
-                            value="{{ 100 - selected_train_percent }}"
-                            readonly
-                        >
-                        <small>
-                            Testing is automatically calculated as
-                            100% minus the training percentage.
-                        </small>
-                    </div>
+                <div class="parameter-field">
+                    <label for="tree-max-depth">Maximum depth:</label>
+                    <input id="tree-max-depth" name="tree_max_depth" type="number" min="1" value="{{ decision_tree_parameters['max_depth'] }}" form="upload-form" required>
+                </div>
 
-                    <div id="kmeans-settings">
-                        <label for="cluster-count">
-                            Number of K-Means clusters:
-                        </label>
-                        <input
-                            id="cluster-count"
-                            name="number_of_clusters"
-                            type="number"
-                            min="2"
-                            max="{{ uploaded_dataset['rows'] - 1 }}"
-                            step="1"
-                            value="{{ selected_cluster_count }}"
-                            required
-                        >
-                        <small>
-                            Allowed range: 2 to {{ uploaded_dataset["rows"] - 1 }}.
-                            A high cluster count can create tiny or meaningless groups
-                            and requires more processing.
-                        </small>
-                    </div>
+                <div class="parameter-field">
+                    <label for="tree-min-split">Minimum samples to split:</label>
+                    <input id="tree-min-split" name="tree_min_samples_split" type="number" min="2" value="{{ decision_tree_parameters['min_samples_split'] }}" form="upload-form" required>
+                </div>
 
-                    <div>
-                        <button type="submit">
-                            Run Selected Models
-                        </button>
-                    </div>
-                </form>
-            </section>
+                <div class="parameter-field">
+                    <label for="tree-min-leaf">Minimum samples per leaf:</label>
+                    <input id="tree-min-leaf" name="tree_min_samples_leaf" type="number" min="1" value="{{ decision_tree_parameters['min_samples_leaf'] }}" form="upload-form" required>
+                </div>
 
-        {% else %}
-            <p>Choose a dataset to begin.</p>
-        {% endif %}
-    </main>
+                <div class="parameter-field">
+                    <label for="tree-max-features">Maximum features:</label>
+                    <select id="tree-max-features" name="tree_max_features" form="upload-form">
+                        {% for value, label in [
+                            ("auto", "Auto"),
+                            ("sqrt", "Square Root"),
+                            ("log2", "Log Base 2"),
+                            ("none", "All Features")
+                        ] %}
+                            <option
+                                value="{{ value }}"
+                                {% if decision_tree_parameters["max_features"] == value %}selected{% endif %}
+                            >{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div id="kmeans-settings" class="parameter-group">
+                <h3>K-Means</h3>
+
+                <div class="parameter-field">
+                    <label for="cluster-count">Clusters:</label>
+                    <input
+                        id="cluster-count"
+                        name="number_of_clusters"
+                        type="number"
+                        min="2"
+                        {% if uploaded_dataset %}max="{{ uploaded_dataset['rows'] - 1 }}"{% endif %}
+                        step="1"
+                        value="{{ selected_cluster_count }}"
+                        form="upload-form"
+                        required
+                    >
+                </div>
+
+                <div class="parameter-field">
+                    <label for="kmeans-init">Initialization:</label>
+                    <select id="kmeans-init" name="kmeans_init" form="upload-form">
+                        <option value="k-means++" {% if kmeans_parameters["init"] == "k-means++" %}selected{% endif %}>K-Means++</option>
+                        <option value="random" {% if kmeans_parameters["init"] == "random" %}selected{% endif %}>Random</option>
+                    </select>
+                </div>
+
+                <div class="parameter-field">
+                    <label for="kmeans-n-init">Restart count:</label>
+                    <input id="kmeans-n-init" name="kmeans_n_init" type="number" min="1" value="{{ kmeans_parameters['n_init'] }}" form="upload-form" required>
+                </div>
+
+                <div class="parameter-field">
+                    <label for="kmeans-max-iter">Maximum iterations:</label>
+                    <input id="kmeans-max-iter" name="kmeans_max_iter" type="number" min="1" value="{{ kmeans_parameters['max_iter'] }}" form="upload-form" required>
+                </div>
+
+                <div class="parameter-field">
+                    <label for="kmeans-tolerance">Tolerance:</label>
+                    <input id="kmeans-tolerance" name="kmeans_tolerance" type="number" min="0.000001" step="0.000001" value="{{ kmeans_parameters['tolerance'] }}" form="upload-form" required>
+                </div>
+
+                <small>
+                    {% if uploaded_dataset %}
+                        Cluster range: 2 to {{ uploaded_dataset["rows"] - 1 }}.
+                    {% else %}
+                        Choose 2 or more clusters before rendering.
+                    {% endif %}
+                </small>
+            </div>
+        </aside>
+    </div>
 </body>
 </html>

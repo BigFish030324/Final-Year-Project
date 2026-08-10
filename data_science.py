@@ -132,6 +132,8 @@ def run_dataset(
         "decision_tree",
         "kmeans",
     ),
+    decision_tree_parameters: dict[str, Any] | None = None,
+    kmeans_parameters: dict[str, Any] | None = None,
     seed: int = 42,
 ) -> dict[str, Any]:
     frame = read_dataset(dataset_path)
@@ -164,6 +166,7 @@ def run_dataset(
             frame,
             target_column=target_column,
             train_percent=train_percent,
+            parameters=decision_tree_parameters,
             seed=seed,
         )
         print_model_result(decision_tree_result)
@@ -176,6 +179,7 @@ def run_dataset(
             frame,
             target_column=target_column,
             number_of_clusters=number_of_clusters,
+            parameters=kmeans_parameters,
             seed=seed,
         )
         print_model_result(kmeans_result)

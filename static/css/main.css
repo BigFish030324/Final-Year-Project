@@ -1,30 +1,171 @@
-/* Keep the first website design simple and readable. */
+:root {
+    --page-background: #e9edf3;
+    --surface: #ffffff;
+    --text: #172033;
+    --muted: #5d687b;
+    --border: #cbd3df;
+
+    /* The three large website sections requested in the prototype. */
+    --menu-red: #b72d3c;
+    --comparison-blue: #129fd1;
+    --comparison-blue-strong: #087aa6;
+    --parameter-green: #14532d;
+    --parameter-green-strong: #0b3d20;
+
+    --warning: #fff4cf;
+    --danger: #ffe8eb;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
 body {
+    background-color: var(--page-background);
+    color: var(--text);
     font-family: Arial, sans-serif;
     line-height: 1.5;
     margin: 0;
-    padding: 20px;
 }
 
-main {
-    margin: 0 auto;
-    max-width: 1100px;
+button,
+input,
+select {
+    font: inherit;
 }
 
-section {
-    margin-bottom: 30px;
+h1,
+h2,
+h3 {
+    margin-top: 0;
 }
 
-fieldset {
-    margin: 18px 0;
+p,
+small {
+    color: var(--muted);
 }
 
-fieldset label {
-    display: inline;
+/* Red menu, blue comparison workspace and green parameter panel. */
+.application-layout {
+    display: grid;
+    grid-template-columns: 240px minmax(0, 1fr) 310px;
+    min-height: 100vh;
 }
 
-form > div {
-    margin: 14px 0;
+.menu-panel {
+    background-color: var(--menu-red);
+    color: #ffffff;
+    padding: 30px 22px;
+}
+
+.menu-panel h2 {
+    margin-bottom: 24px;
+}
+
+.menu-panel nav {
+    display: grid;
+    gap: 10px;
+}
+
+.menu-panel a {
+    border-radius: 8px;
+    color: #ffffff;
+    font-weight: 700;
+    padding: 11px 12px;
+    text-decoration: none;
+}
+
+.menu-panel a:hover,
+.menu-panel a:focus-visible,
+.menu-panel a[aria-current="page"] {
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
+.menu-panel p {
+    color: #ffecef;
+    font-size: 0.88rem;
+    margin-top: 28px;
+}
+
+.comparison-panel {
+    background-color: var(--comparison-blue);
+    min-width: 0;
+    padding: 32px;
+}
+
+.parameters-panel {
+    background-color: var(--parameter-green);
+    color: #ffffff;
+    padding: 30px 22px;
+}
+
+.parameters-panel p,
+.parameters-panel small {
+    color: #d9f5e2;
+}
+
+.parameter-group {
+    background-color: rgba(255, 255, 255, 0.09);
+    border-radius: 12px;
+    margin-top: 22px;
+    padding: 18px;
+}
+
+.parameter-group[hidden] {
+    display: none;
+}
+
+.parameter-group h3 {
+    margin-bottom: 8px;
+}
+
+.page-heading {
+    margin-bottom: 24px;
+}
+
+.page-heading p:last-child {
+    margin-bottom: 0;
+}
+
+.section-label {
+    color: inherit;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+}
+
+.workspace-view[hidden] {
+    display: none;
+}
+
+.content-card {
+    background-color: rgba(255, 255, 255, 0.9);
+    border-radius: 12px;
+    margin-bottom: 22px;
+    padding: 22px;
+}
+
+.error-card {
+    background-color: var(--danger);
+}
+
+.warning-card {
+    background-color: var(--warning);
+}
+
+.empty-state {
+    text-align: center;
+}
+
+form > div,
+.parameter-field {
+    margin: 16px 0;
 }
 
 label,
@@ -32,37 +173,111 @@ small {
     display: block;
 }
 
+label,
+legend {
+    font-weight: 700;
+}
+
 small {
-    margin-top: 4px;
+    margin-top: 5px;
+}
+
+fieldset {
+    border: 0;
+    margin: 20px 0;
+    padding: 0;
+}
+
+.model-library-options {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.model-option {
+    align-items: center;
+    background-color: rgba(255, 255, 255, 0.75);
+    border-radius: 10px;
+    display: flex;
+    gap: 8px;
+    min-height: 64px;
+    padding: 14px;
+}
+
+.model-option label {
+    display: inline;
 }
 
 input,
 select,
 button {
-    margin-top: 5px;
-    padding: 6px;
+    border: 1px solid #aeb9c8;
+    border-radius: 7px;
+    margin-top: 6px;
+    padding: 9px 10px;
 }
 
-/* Allow wide dataset and result tables to scroll on small screens. */
+input:not([type="checkbox"]),
+select {
+    background-color: var(--surface);
+    max-width: 430px;
+    width: 100%;
+}
+
+input[readonly] {
+    background-color: #eef1f5;
+}
+
+button {
+    background-color: #17385a;
+    border-color: #17385a;
+    color: #ffffff;
+    cursor: pointer;
+    font-weight: 700;
+}
+
+button:hover,
+button:focus-visible {
+    background-color: #25577f;
+}
+
+.split-grid {
+    display: grid;
+    gap: 18px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .table-container {
     overflow-x: auto;
 }
 
 .result-table {
+    background-color: var(--surface);
     border-collapse: collapse;
-    min-width: 420px;
+    min-width: 440px;
+    width: 100%;
 }
 
 .result-table th,
 .result-table td {
-    border: 1px solid #999999;
-    padding: 8px 12px;
+    border: 1px solid #aeb9c8;
+    padding: 9px 12px;
     text-align: center;
 }
 
-/* Display every K-Means cluster as a proportional horizontal bar. */
+.result-table th {
+    background-color: #e8eef6;
+}
+
+.metric-list {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    padding-left: 20px;
+}
+
 .cluster-chart {
-    max-width: 700px;
+    max-width: 720px;
 }
 
 .cluster-row {
@@ -70,14 +285,53 @@ button {
 }
 
 .cluster-track {
-    background-color: #dddddd;
+    background-color: #dce3ec;
+    border-radius: 5px;
     height: 18px;
-    margin: 4px 0;
+    margin: 5px 0;
+    overflow: hidden;
     width: 100%;
 }
 
 .cluster-bar {
-    background-color: #3578c8;
+    background-color: var(--comparison-blue-strong);
     height: 100%;
     min-width: 2px;
+}
+
+/* Move parameters below the comparison workspace on medium screens. */
+@media (max-width: 1050px) {
+    .application-layout {
+        grid-template-columns: 210px minmax(0, 1fr);
+    }
+
+    .parameters-panel {
+        grid-column: 1 / -1;
+    }
+}
+
+/* Stack all three coloured sections on phones. */
+@media (max-width: 700px) {
+    .application-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .menu-panel,
+    .comparison-panel,
+    .parameters-panel {
+        grid-column: 1;
+        padding: 20px 16px;
+    }
+
+    .menu-panel nav {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .split-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .model-library-options {
+        grid-template-columns: 1fr;
+    }
 }

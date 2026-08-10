@@ -26,6 +26,7 @@ def decision_tree(
     frame: pd.DataFrame,
     target_column: str,
     train_percent: int = 70,
+    parameters: dict[str, Any] | None = None,
     seed: int = 42,
 ) -> dict[str, Any]:
     from sklearn.metrics import (
@@ -99,17 +100,49 @@ def decision_tree(
     # Detect whether Decision Tree should use classification or regression
     task, task_reason = detect_model_type(target)
 
+    # Start with the same Decision Tree defaults as the test environment,
+    # then replace them with any values chosen in the green parameter panel.
+    model_parameters = {
+        "criterion": "auto",
+        "splitter": "best",
+        "max_depth": 8,
+        "min_samples_split": 2,
+        "min_samples_leaf": 1,
+        "max_features": "auto",
+    }
+    model_parameters.update(parameters or {})
+
+    criterion = model_parameters["criterion"]
+    if criterion == "auto":
+        criterion = "gini" if task == "classification" else "squared_error"
+
+    allowed_criteria = (
+        {"gini", "entropy", "log_loss"}
+        if task == "classification"
+        else {"squared_error", "friedman_mse", "absolute_error", "poisson"}
+    )
+    if criterion not in allowed_criteria:
+        raise UserError(
+            f"Criterion '{criterion}' cannot be used for Decision Tree {task}. "
+            "Choose Auto or a criterion that matches the detected task."
+        )
+
+    max_features = model_parameters["max_features"]
+    if max_features in {"auto", "none"}:
+        max_features = None
+
     # Create the shared numeric and categorical preprocessor
     preprocessor = build_preprocessor(features)
 
     # Create a Decision Tree classifier for category targets
     if task == "classification":
         estimator = DecisionTreeClassifier(
-            criterion="gini",
-            splitter="best",
-            max_depth=8,
-            min_samples_split=2,
-            min_samples_leaf=1,
+            criterion=criterion,
+            splitter=model_parameters["splitter"],
+            max_depth=model_parameters["max_depth"],
+            min_samples_split=model_parameters["min_samples_split"],
+            min_samples_leaf=model_parameters["min_samples_leaf"],
+            max_features=max_features,
             random_state=seed,
         )
 
@@ -129,11 +162,12 @@ def decision_tree(
     # Create a Decision Tree regressor for continuous numeric targets
     else:
         estimator = DecisionTreeRegressor(
-            criterion="squared_error",
-            splitter="best",
-            max_depth=8,
-            min_samples_split=2,
-            min_samples_leaf=1,
+            criterion=criterion,
+            splitter=model_parameters["splitter"],
+            max_depth=model_parameters["max_depth"],
+            min_samples_split=model_parameters["min_samples_split"],
+            min_samples_leaf=model_parameters["min_samples_leaf"],
+            max_features=max_features,
             random_state=seed,
         )
 
@@ -285,6 +319,7 @@ def decision_tree(
         "task_reason": task_reason,
         "target": target_column,
         "train_percent": train_percent,
+        "parameters": model_parameters,
         "feature_columns": feature_columns,
         "train_rows": len(features_train),
         "test_rows": len(features_test),
