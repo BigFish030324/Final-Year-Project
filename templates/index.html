@@ -332,6 +332,7 @@
                         <div class="model-option">
                             <input
                                 id="select-decision-tree"
+                                data-model-choice
                                 type="checkbox"
                                 value="decision_tree"
                                 {% if "decision_tree" in selected_models %}checked{% endif %}
@@ -344,6 +345,7 @@
                         <div class="model-option">
                             <input
                                 id="select-kmeans"
+                                data-model-choice
                                 type="checkbox"
                                 value="kmeans"
                                 {% if "kmeans" in selected_models %}checked{% endif %}
@@ -500,6 +502,65 @@
                 </small>
             </div>
         </aside>
+
+        <!-- Yellow: quick model selection shown only on Comparison. -->
+        <section
+            id="model-dock"
+            class="model-dock"
+            aria-label="Quick model selection"
+        >
+            <div class="model-dock-toolbar">
+                <div>
+                    <h2>Data Model Selection</h2>
+                    <p>Select models without leaving Comparison.</p>
+                </div>
+
+                <button
+                    id="model-dock-toggle"
+                    class="model-dock-toggle"
+                    type="button"
+                    aria-expanded="true"
+                    aria-controls="model-dock-content"
+                    aria-label="Minimize data model selection"
+                    title="Minimize data model selection"
+                >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path class="dock-collapse-icon" d="m5 9 7 7 7-7"></path>
+                        <path class="dock-expand-icon" d="m5 15 7-7 7 7"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <div id="model-dock-content" class="model-dock-content">
+                <label class="dock-model-option" for="dock-decision-tree">
+                    <input
+                        id="dock-decision-tree"
+                        data-model-choice
+                        type="checkbox"
+                        value="decision_tree"
+                        {% if "decision_tree" in selected_models %}checked{% endif %}
+                    >
+                    <span>
+                        <strong>Decision Tree</strong>
+                        <small>Classification or regression</small>
+                    </span>
+                </label>
+
+                <label class="dock-model-option" for="dock-kmeans">
+                    <input
+                        id="dock-kmeans"
+                        data-model-choice
+                        type="checkbox"
+                        value="kmeans"
+                        {% if "kmeans" in selected_models %}checked{% endif %}
+                    >
+                    <span>
+                        <strong>K-Means</strong>
+                        <small>Clustering</small>
+                    </span>
+                </label>
+            </div>
+        </section>
     </div>
 </body>
 </html>
