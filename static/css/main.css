@@ -5,8 +5,7 @@
     --muted: #5d687b;
     --border: #cbd3df;
 
-    /* The three large website sections requested in the prototype. */
-    --menu-red: #b72d3c;
+    --sidebar-width: 240px;
     --comparison-blue: #129fd1;
     --comparison-blue-strong: #087aa6;
     --parameter-green: #14532d;
@@ -51,46 +50,214 @@ small {
     color: var(--muted);
 }
 
-/* Red menu, blue comparison workspace and green parameter panel. */
+/* Collapsible sidebar, blue comparison workspace and green parameters. */
 .application-layout {
     display: grid;
-    grid-template-columns: 240px minmax(0, 1fr) 310px;
+    grid-template-columns: var(--sidebar-width) minmax(0, 1fr) 310px;
     min-height: 100vh;
+    transition: grid-template-columns 0.2s ease;
 }
 
-.menu-panel {
-    background-color: var(--menu-red);
-    color: #ffffff;
-    padding: 30px 22px;
+.sidebar {
+    background-color: #111827;
+    color: #f8fafc;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    min-height: 0;
+    overflow: hidden;
+    padding: 1.15rem 0.8rem;
+    position: sticky;
+    top: 0;
+    z-index: 50;
 }
 
-.menu-panel h2 {
-    margin-bottom: 24px;
+.sidebar-brand-row {
+    align-items: center;
+    display: flex;
+    min-width: 0;
 }
 
-.menu-panel nav {
+.sidebar-brand-row .brand {
+    flex: 1;
+    min-width: 0;
+}
+
+.sidebar-collapse {
+    background: transparent;
+    border: 0;
+    color: #91a0b7;
     display: grid;
-    gap: 10px;
+    flex: 0 0 auto;
+    height: 30px;
+    margin: 0;
+    padding: 6px;
+    place-items: center;
+    width: 30px;
 }
 
-.menu-panel a {
-    border-radius: 8px;
+.sidebar-collapse:hover,
+.sidebar-collapse:focus-visible {
+    background-color: #202a3c;
     color: #ffffff;
-    font-weight: 700;
-    padding: 11px 12px;
+}
+
+.sidebar-collapse svg,
+.brand-expand-icon {
+    fill: none;
+    height: 19px;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.8;
+    width: 19px;
+}
+
+.brand {
+    align-items: center;
+    color: inherit;
+    display: flex;
+    gap: 0.7rem;
+    padding: 0.45rem 0.55rem 1.25rem;
     text-decoration: none;
 }
 
-.menu-panel a:hover,
-.menu-panel a:focus-visible,
-.menu-panel a[aria-current="page"] {
-    background-color: rgba(255, 255, 255, 0.15);
+.brand-mark {
+    background: linear-gradient(135deg, #5377f6, #7c3aed);
+    border-radius: 11px;
+    color: #ffffff;
+    display: grid;
+    flex: 0 0 auto;
+    font-size: 0.7rem;
+    font-weight: 850;
+    height: 38px;
+    letter-spacing: 0.02em;
+    place-items: center;
+    width: 38px;
 }
 
-.menu-panel p {
-    color: #ffecef;
-    font-size: 0.88rem;
-    margin-top: 28px;
+.brand-expand-icon {
+    display: none;
+}
+
+.brand-copy {
+    display: flex;
+    flex-direction: column;
+}
+
+.brand-copy strong {
+    font-size: 0.98rem;
+}
+
+.brand-copy small {
+    color: #91a0b7;
+    font-size: 0.66rem;
+    margin-top: 1px;
+}
+
+.primary-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.nav-link {
+    align-items: center;
+    border-radius: 8px;
+    color: #b7c2d4;
+    display: flex;
+    font-size: 0.84rem;
+    font-weight: 600;
+    gap: 0.75rem;
+    min-height: 44px;
+    padding: 0.7rem 0.75rem;
+    text-decoration: none;
+}
+
+.nav-link:hover,
+.nav-link:focus-visible {
+    background-color: #202a3c;
+    color: #ffffff;
+}
+
+.nav-link.active,
+.nav-link[aria-current="page"] {
+    background: linear-gradient(90deg, #26395f, #202a3c);
+    box-shadow: inset 3px 0 #7897ff;
+    color: #ffffff;
+}
+
+.nav-link-disabled {
+    color: #718096;
+    cursor: default;
+}
+
+.nav-link-disabled:hover,
+.nav-link-disabled:focus-visible {
+    background-color: transparent;
+    color: #718096;
+}
+
+.nav-icon {
+    font-size: 1rem;
+    text-align: center;
+    width: 24px;
+}
+
+@media (min-width: 701px) {
+    html.sidebar-precollapsed .application-layout,
+    .application-layout.sidebar-collapsed {
+        --sidebar-width: 74px;
+    }
+
+    html.sidebar-precollapsed .brand-copy,
+    html.sidebar-precollapsed .nav-link > span:last-child,
+    .application-layout.sidebar-collapsed .brand-copy,
+    .application-layout.sidebar-collapsed .nav-link > span:last-child {
+        display: none;
+    }
+
+    html.sidebar-precollapsed .sidebar-collapse,
+    .application-layout.sidebar-collapsed .sidebar-collapse {
+        display: none;
+    }
+
+    html.sidebar-precollapsed .sidebar-brand-row,
+    .application-layout.sidebar-collapsed .sidebar-brand-row {
+        justify-content: center;
+    }
+
+    html.sidebar-precollapsed .brand,
+    .application-layout.sidebar-collapsed .brand {
+        justify-content: center;
+        padding-inline: 0;
+    }
+
+    html.sidebar-precollapsed .brand:hover .brand-initials,
+    .application-layout.sidebar-collapsed .brand:hover .brand-initials {
+        display: none;
+    }
+
+    html.sidebar-precollapsed .brand:hover .brand-expand-icon,
+    .application-layout.sidebar-collapsed .brand:hover .brand-expand-icon {
+        display: block;
+    }
+
+    html.sidebar-precollapsed .nav-link,
+    .application-layout.sidebar-collapsed .nav-link {
+        justify-content: center;
+        padding-inline: 0;
+    }
+
+    html.sidebar-precollapsed .nav-icon,
+    .application-layout.sidebar-collapsed .nav-icon {
+        width: auto;
+    }
+
+    html.sidebar-precollapsed .model-dock,
+    .application-layout.sidebar-collapsed .model-dock {
+        left: 94px;
+    }
 }
 
 .comparison-panel {
@@ -137,7 +304,7 @@ body.model-dock-visible .parameters-panel {
     bottom: 12px;
     color: #352800;
     height: 218px;
-    left: 260px;
+    left: calc(var(--sidebar-width) + 20px);
     overflow: hidden;
     position: fixed;
     right: 20px;
@@ -422,15 +589,11 @@ button:focus-visible {
 /* Move parameters below the comparison workspace on medium screens. */
 @media (max-width: 1050px) {
     .application-layout {
-        grid-template-columns: 210px minmax(0, 1fr);
+        grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
     }
 
     .parameters-panel {
-        grid-column: 1 / -1;
-    }
-
-    .model-dock {
-        left: 230px;
+        grid-column: 2;
     }
 }
 
@@ -440,15 +603,29 @@ button:focus-visible {
         grid-template-columns: 1fr;
     }
 
-    .menu-panel,
+    .sidebar,
     .comparison-panel,
     .parameters-panel {
         grid-column: 1;
         padding: 20px 16px;
     }
 
-    .menu-panel nav {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+    .sidebar {
+        height: auto;
+        position: static;
+    }
+
+    .sidebar-collapse {
+        display: none;
+    }
+
+    .primary-nav {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .nav-link {
+        justify-content: center;
     }
 
     .split-grid {

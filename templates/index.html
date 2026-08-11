@@ -9,6 +9,19 @@
 
     <title>Data Model Comparison</title>
 
+    <!-- Apply the remembered sidebar size before the page becomes visible. -->
+    <script>
+        try {
+            if (localStorage.getItem("sidebar_collapsed") === "true") {
+                document.documentElement.classList.add(
+                    "sidebar-precollapsed",
+                );
+            }
+        } catch (_error) {
+            /* Browser storage may be unavailable in privacy modes. */
+        }
+    </script>
+
     <link
         rel="stylesheet"
         href="{{ url_for('static', filename='css/main.css') }}"
@@ -21,29 +34,87 @@
 
 <body>
     <div class="application-layout">
-        <!-- Red: prototype navigation menu. -->
-        <aside class="menu-panel">
-            <h2>Prototype Menu</h2>
+        <!-- Collapsible left panel based on the test environment sidebar. -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-brand-row">
+                <a
+                    class="brand"
+                    href="#comparison"
+                    aria-label="Final Year Project home"
+                >
+                    <span class="brand-mark">
+                        <span class="brand-initials">FYP</span>
+                        <svg
+                            class="brand-expand-icon"
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                        >
+                            <path d="m9 5 7 7-7 7"></path>
+                            <path d="M5 5v14"></path>
+                        </svg>
+                    </span>
+                    <span class="brand-copy">
+                        <strong>DataComparison</strong>
+                        <small>Explore. Compare. Learn.</small>
+                    </span>
+                </a>
 
-            <nav aria-label="Main navigation">
-                <a href="#comparison" data-view-link="comparison">
-                    Comparison
+                <button
+                    class="sidebar-collapse"
+                    id="sidebar-collapse"
+                    type="button"
+                    aria-label="Minimize menu"
+                    title="Minimize menu"
+                >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M14 6 8 12l6 6"></path>
+                        <path d="M19 5v14"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <nav class="primary-nav" aria-label="Main navigation">
+                <a
+                    href="#comparison"
+                    class="nav-link"
+                    data-view-link="comparison"
+                >
+                    <span class="nav-icon">⇄</span>
+                    <span>Comparison</span>
                 </a>
-                <a href="#model-library" data-view-link="model-library">
-                    Model Library
+
+                <div
+                    class="nav-link nav-link-disabled"
+                    aria-disabled="true"
+                >
+                    <span class="nav-icon">✦</span>
+                    <span>Data Cleaning</span>
+                </div>
+
+                <a
+                    href="#model-library"
+                    class="nav-link"
+                    data-view-link="model-library"
+                >
+                    <span class="nav-icon">▦</span>
+                    <span>Model Library</span>
                 </a>
+
+                <div
+                    class="nav-link nav-link-disabled"
+                    aria-disabled="true"
+                >
+                    <span class="nav-icon">↶</span>
+                    <span>History</span>
+                </div>
             </nav>
-
-            <p>
-                Choose models in Model Library, then return to Comparison.
-            </p>
         </aside>
 
         <!-- Blue: the menu changes which middle workspace is visible. -->
         <main class="comparison-panel">
             <!-- Comparison appears first when the website opens. -->
             <div id="comparison" class="workspace-view">
-                <header class="page-heading">
+                <header id="comparison-heading" class="page-heading">
                     <p class="section-label">Comparison</p>
                     <h1>Side-by-side Data Model Comparison</h1>
                 </header>

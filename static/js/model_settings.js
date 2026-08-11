@@ -1,17 +1,14 @@
 document.addEventListener("DOMContentLoaded", function () {
+    const applicationLayout = document.querySelector(
+        ".application-layout",
+    );
+    const sidebarCollapseButton = document.getElementById(
+        "sidebar-collapse",
+    );
+    const brandLink = document.querySelector(".brand");
+
     const trainingInput = document.getElementById("train-percent");
     const testingInput = document.getElementById("test-percent");
-    const decisionTreeCheckbox = document.getElementById(
-        "select-decision-tree",
-    );
-    const kMeansCheckbox = document.getElementById(
-        "select-kmeans",
-    );
-    const decisionTreeSettings = document.getElementById(
-        "decision-tree-settings",
-    );
-    const kMeansSettings = document.getElementById("kmeans-settings");
-
     const uploadTrainInput = document.getElementById(
         "upload-train-percent",
     );
@@ -19,12 +16,103 @@ document.addEventListener("DOMContentLoaded", function () {
         "upload-model-fields",
     );
 
+    const decisionTreeSettings = document.getElementById(
+        "decision-tree-settings",
+    );
+    const kMeansSettings = document.getElementById("kmeans-settings");
+    const modelCheckboxes = Array.from(
+        document.querySelectorAll("[data-model-choice]"),
+    );
+
     const viewLinks = document.querySelectorAll("[data-view-link]");
     const workspaceViews = document.querySelectorAll(".workspace-view");
+    const modelDock = document.getElementById("model-dock");
+    const modelDockToggle = document.getElementById(
+        "model-dock-toggle",
+    );
+
+    // ----------------------------------------------------
+    // Collapsible Left Sidebar
+    // ----------------------------------------------------
+
+    function updateSidebarCollapse(collapsed) {
+        applicationLayout.classList.toggle(
+            "sidebar-collapsed",
+            collapsed,
+        );
+        document.documentElement.classList.toggle(
+            "sidebar-precollapsed",
+            collapsed,
+        );
+
+        sidebarCollapseButton.setAttribute(
+            "aria-label",
+            collapsed ? "Expand menu" : "Minimize menu",
+        );
+        sidebarCollapseButton.title = (
+            collapsed ? "Expand menu" : "Minimize menu"
+        );
+    }
+
+    let rememberedSidebarState = false;
+    try {
+        rememberedSidebarState = (
+            window.localStorage.getItem("sidebar_collapsed") === "true"
+        );
+    } catch (_error) {
+        // Use the expanded sidebar when browser storage is unavailable.
+    }
+    updateSidebarCollapse(rememberedSidebarState);
+
+    sidebarCollapseButton.addEventListener("click", function () {
+        const collapsed = !applicationLayout.classList.contains(
+            "sidebar-collapsed",
+        );
+        updateSidebarCollapse(collapsed);
+
+        try {
+            window.localStorage.setItem(
+                "sidebar_collapsed",
+                String(collapsed),
+            );
+        } catch (_error) {
+            // The sidebar still works for the current page.
+        }
+    });
+
+    brandLink.addEventListener("click", function (event) {
+        event.preventDefault();
+
+        if (applicationLayout.classList.contains("sidebar-collapsed")) {
+            updateSidebarCollapse(false);
+
+            try {
+                window.localStorage.setItem("sidebar_collapsed", "false");
+            } catch (_error) {
+                // The expanded state still applies to the current page.
+            }
+            return;
+        }
+
+        showWorkspace("comparison");
+    });
 
     // ----------------------------------------------------
     // Comparison and Model Library Navigation
     // ----------------------------------------------------
+
+    function syncModelDockSpacing() {
+        if (!modelDock || modelDock.hidden) {
+            document.body.classList.remove("model-dock-visible");
+            return;
+        }
+
+        document.body.classList.add("model-dock-visible");
+        document.documentElement.style.setProperty(
+            "--model-dock-clearance",
+            `${Math.ceil(modelDock.getBoundingClientRect().height) + 34}px`,
+        );
+    }
 
     function showWorkspace(viewName) {
         workspaceViews.forEach(function (view) {
@@ -34,16 +122,19 @@ document.addEventListener("DOMContentLoaded", function () {
         viewLinks.forEach(function (link) {
             if (link.dataset.viewLink === viewName) {
                 link.setAttribute("aria-current", "page");
+                link.classList.add("active");
             } else {
                 link.removeAttribute("aria-current");
+                link.classList.remove("active");
             }
         });
 
-        window.history.replaceState(
-            null,
-            "",
-            `#${viewName}`,
-        );
+        if (modelDock) {
+            modelDock.hidden = viewName !== "comparison";
+        }
+        syncModelDockSpacing();
+
+        window.history.replaceState(null, "", `#${viewName}`);
     }
 
     viewLinks.forEach(function (link) {
@@ -61,13 +152,61 @@ document.addEventListener("DOMContentLoaded", function () {
     showWorkspace(firstView);
 
     // ----------------------------------------------------
-    // Remember Selected Models
+    // Yellow Bottom Model Dock
     // ----------------------------------------------------
 
-    const modelCheckboxes = [
-        decisionTreeCheckbox,
-        kMeansCheckbox,
-    ].filter(Boolean);
+    function updateModelDockCollapse(collapsed) {
+        modelDock.classList.toggle("collapsed", collapsed);
+        modelDockToggle.setAttribute(
+            "aria-expanded",
+            String(!collapsed),
+        );
+        modelDockToggle.setAttribute(
+            "aria-label",
+            collapsed
+                ? "Expand data model selection"
+                : "Minimize data model selection",
+        );
+        modelDockToggle.title = (
+            collapsed
+                ? "Expand data model selection"
+                : "Minimize data model selection"
+        );
+        window.requestAnimationFrame(syncModelDockSpacing);
+    }
+
+    let rememberedDockState = false;
+    try {
+        rememberedDockState = (
+            window.localStorage.getItem("model_dock_collapsed") === "true"
+        );
+    } catch (_error) {
+        // Use the expanded model dock when storage is unavailable.
+    }
+    updateModelDockCollapse(rememberedDockState);
+
+    modelDockToggle.addEventListener("click", function () {
+        const collapsed = !modelDock.classList.contains("collapsed");
+        updateModelDockCollapse(collapsed);
+
+        try {
+            window.localStorage.setItem(
+                "model_dock_collapsed",
+                String(collapsed),
+            );
+        } catch (_error) {
+            // The dock still works for the current page.
+        }
+    });
+
+    if (window.ResizeObserver) {
+        new ResizeObserver(syncModelDockSpacing).observe(modelDock);
+    }
+    window.addEventListener("resize", syncModelDockSpacing);
+
+    // ----------------------------------------------------
+    // Synchronized Model Choices
+    // ----------------------------------------------------
 
     try {
         const rememberedModels = JSON.parse(
@@ -82,20 +221,23 @@ document.addEventListener("DOMContentLoaded", function () {
             });
         }
     } catch (_error) {
-        // Keep the model choices provided by Flask when storage is unavailable.
+        // Keep the model choices provided by Flask.
     }
 
     function selectedModelNames() {
-        return modelCheckboxes
-            .filter(function (checkbox) {
-                return checkbox.checked;
-            })
-            .map(function (checkbox) {
-                return checkbox.value;
-            });
+        return Array.from(
+            new Set(
+                modelCheckboxes
+                    .filter(function (checkbox) {
+                        return checkbox.checked;
+                    })
+                    .map(function (checkbox) {
+                        return checkbox.value;
+                    }),
+            ),
+        );
     }
 
-    // Add the remembered model choices to the dataset rendering form.
     function writeModelFields(container, selectedModels) {
         if (!container) {
             return;
@@ -112,6 +254,19 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
+    function updateParameterSection(section, isSelected) {
+        if (!section) {
+            return;
+        }
+
+        section.hidden = !isSelected;
+        section.querySelectorAll("input, select").forEach(
+            function (control) {
+                control.disabled = !isSelected;
+            },
+        );
+    }
+
     function updateSelectedModels() {
         const selectedModels = selectedModelNames();
 
@@ -121,47 +276,30 @@ document.addEventListener("DOMContentLoaded", function () {
                 JSON.stringify(selectedModels),
             );
         } catch (_error) {
-            // The current page still remembers choices without browser storage.
+            // The current page still remembers matching checkbox states.
         }
 
         writeModelFields(uploadModelFields, selectedModels);
-
-        // The green panel only displays parameters for selected models.
-        function updateParameterSection(section, isSelected) {
-            if (!section) {
-                return;
-            }
-
-            section.hidden = !isSelected;
-            section.querySelectorAll("input, select").forEach(
-                function (control) {
-                    control.disabled = !isSelected;
-                },
-            );
-        }
-
-        if (decisionTreeCheckbox) {
-            updateParameterSection(
-                decisionTreeSettings,
-                decisionTreeCheckbox.checked,
-            );
-        }
-
-        if (kMeansCheckbox) {
-            updateParameterSection(
-                kMeansSettings,
-                kMeansCheckbox.checked,
-            );
-        }
+        updateParameterSection(
+            decisionTreeSettings,
+            selectedModels.includes("decision_tree"),
+        );
+        updateParameterSection(
+            kMeansSettings,
+            selectedModels.includes("kmeans"),
+        );
     }
 
     modelCheckboxes.forEach(function (checkbox) {
-        checkbox.addEventListener(
-            "change",
-            updateSelectedModels,
-        );
+        checkbox.addEventListener("change", function () {
+            modelCheckboxes.forEach(function (matchingCheckbox) {
+                if (matchingCheckbox.value === checkbox.value) {
+                    matchingCheckbox.checked = checkbox.checked;
+                }
+            });
+            updateSelectedModels();
+        });
     });
-
     updateSelectedModels();
 
     // ----------------------------------------------------
@@ -181,15 +319,10 @@ document.addEventListener("DOMContentLoaded", function () {
         if (uploadTrainInput) {
             uploadTrainInput.value = trainingPercentage;
         }
-
     }
 
     if (trainingInput && testingInput) {
-        trainingInput.addEventListener(
-            "input",
-            updateTestingPercentage,
-        );
-
+        trainingInput.addEventListener("input", updateTestingPercentage);
         updateTestingPercentage();
     }
 });
