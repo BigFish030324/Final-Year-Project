@@ -1,17 +1,17 @@
 :root {
-    --page-background: #e9edf3;
+    --page-background: #f4f6fa;
     --surface: #ffffff;
     --text: #172033;
     --muted: #5d687b;
     --border: #cbd3df;
 
     --sidebar-width: 240px;
-    --comparison-blue: #129fd1;
-    --comparison-blue-strong: #087aa6;
-    --parameter-green: #14532d;
-    --parameter-green-strong: #0b3d20;
-    --model-dock-yellow: #f2c94c;
-    --model-dock-yellow-light: #fff3b5;
+    --comparison-blue: #f4f6fa;
+    --comparison-blue-strong: #3157d5;
+    --parameter-green: #ffffff;
+    --parameter-green-strong: #f8fafc;
+    --model-dock-yellow: #ffffff;
+    --model-dock-yellow-light: #f8fafc;
 
     --warning: #fff4cf;
     --danger: #ffe8eb;
@@ -31,6 +31,7 @@ body {
     font-family: Arial, sans-serif;
     line-height: 1.5;
     margin: 0;
+    overflow: hidden;
 }
 
 button,
@@ -54,7 +55,9 @@ small {
 .application-layout {
     display: grid;
     grid-template-columns: var(--sidebar-width) minmax(0, 1fr) 310px;
-    min-height: 100vh;
+    height: 100vh;
+    min-height: 0;
+    overflow: hidden;
     transition: grid-template-columns 0.2s ease;
 }
 
@@ -262,23 +265,34 @@ small {
 
 .comparison-panel {
     background-color: var(--comparison-blue);
+    height: 100vh;
     min-width: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
     padding: 32px;
+    scrollbar-gutter: stable;
 }
 
 .parameters-panel {
     background-color: var(--parameter-green);
-    color: #ffffff;
+    border: 1px solid #000000;
+    color: var(--text);
+    height: 100vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
     padding: 30px 22px;
+    scrollbar-gutter: stable;
 }
 
 .parameters-panel p,
 .parameters-panel small {
-    color: #d9f5e2;
+    color: #667085;
 }
 
 .parameter-group {
-    background-color: rgba(255, 255, 255, 0.09);
+    background-color: var(--parameter-green-strong);
     border-radius: 12px;
     margin-top: 22px;
     padding: 18px;
@@ -300,9 +314,10 @@ body.model-dock-visible .parameters-panel {
 /* Fixed yellow model selector based on the test-environment bottom dock. */
 .model-dock {
     background-color: var(--model-dock-yellow);
+    border: 1px solid #000000;
     border-radius: 12px;
     bottom: 12px;
-    color: #352800;
+    color: var(--text);
     height: 218px;
     left: calc(var(--sidebar-width) + 20px);
     overflow: hidden;
@@ -330,14 +345,15 @@ body.model-dock-visible .parameters-panel {
 }
 
 .model-dock-toolbar p {
-    color: #6b5209;
+    color: #667085;
     font-size: 0.78rem;
 }
 
 .model-dock-toggle {
     align-items: center;
-    background-color: #3f3107;
+    background-color: #eef2f7;
     border: 0;
+    color: #667085;
     display: flex;
     height: 36px;
     justify-content: center;
@@ -392,7 +408,7 @@ body.model-dock-visible .parameters-panel {
 }
 
 .dock-model-option small {
-    color: #6b5209;
+    color: #667085;
     margin-top: 3px;
 }
 
@@ -724,14 +740,23 @@ button:focus-visible {
 
 /* Stack all three coloured sections on phones. */
 @media (max-width: 700px) {
+    body {
+        overflow: auto;
+    }
+
     .application-layout {
         grid-template-columns: 1fr;
+        height: auto;
+        min-height: 100vh;
+        overflow: visible;
     }
 
     .sidebar,
     .comparison-panel,
     .parameters-panel {
         grid-column: 1;
+        height: auto;
+        overflow: visible;
         padding: 20px 16px;
     }
 

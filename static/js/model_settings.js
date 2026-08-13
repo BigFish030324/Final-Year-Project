@@ -182,28 +182,12 @@ document.addEventListener("DOMContentLoaded", function () {
         window.requestAnimationFrame(syncModelDockSpacing);
     }
 
-    let rememberedDockState = false;
-    try {
-        rememberedDockState = (
-            window.localStorage.getItem("model_dock_collapsed") === "true"
-        );
-    } catch (_error) {
-        // Use the expanded model dock when storage is unavailable.
-    }
-    updateModelDockCollapse(rememberedDockState);
+    // Begin every new page load with the yellow model panel minimized.
+    updateModelDockCollapse(true);
 
     modelDockToggle.addEventListener("click", function () {
         const collapsed = !modelDock.classList.contains("collapsed");
         updateModelDockCollapse(collapsed);
-
-        try {
-            window.localStorage.setItem(
-                "model_dock_collapsed",
-                String(collapsed),
-            );
-        } catch (_error) {
-            // The dock still works for the current page.
-        }
     });
 
     if (window.ResizeObserver) {
