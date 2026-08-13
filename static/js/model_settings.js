@@ -23,6 +23,13 @@ document.addEventListener("DOMContentLoaded", function () {
     const modelCheckboxes = Array.from(
         document.querySelectorAll("[data-model-choice]"),
     );
+    const modelSlots = Array.from(
+        document.querySelectorAll("[data-model-slot]"),
+    );
+    const comparisonNotice = document.getElementById(
+        "comparison-notice",
+    );
+    let activeModelName = null;
 
     const viewLinks = document.querySelectorAll("[data-view-link]");
     const workspaceViews = document.querySelectorAll(".workspace-view");
@@ -270,6 +277,10 @@ document.addEventListener("DOMContentLoaded", function () {
     function updateSelectedModels() {
         const selectedModels = selectedModelNames();
 
+        if (!selectedModels.includes(activeModelName)) {
+            activeModelName = selectedModels[0] || null;
+        }
+
         try {
             window.sessionStorage.setItem(
                 "selected_models",
@@ -280,13 +291,43 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         writeModelFields(uploadModelFields, selectedModels);
+
+        modelSlots.forEach(function (slot) {
+            const isSelected = selectedModels.includes(
+                slot.dataset.modelSlot,
+            );
+            slot.classList.toggle("selected", isSelected);
+            slot.classList.toggle(
+                "active",
+                isSelected && slot.dataset.modelSlot === activeModelName,
+            );
+            slot.setAttribute("aria-selected", String(isSelected));
+        });
+
+        if (comparisonNotice) {
+            if (selectedModels.length === 0) {
+                comparisonNotice.textContent = (
+                    "Choose at least one model from the yellow panel or Model Library."
+                );
+            } else if (selectedModels.length === 1) {
+                comparisonNotice.textContent = (
+                    "One model is selected. The second comparison slot is optional."
+                );
+            } else {
+                comparisonNotice.textContent = (
+                    "Both models are selected and ready for side-by-side comparison."
+                );
+            }
+        }
+
+        // Only the active selected slot displays its parameters.
         updateParameterSection(
             decisionTreeSettings,
-            selectedModels.includes("decision_tree"),
+            activeModelName === "decision_tree",
         );
         updateParameterSection(
             kMeansSettings,
-            selectedModels.includes("kmeans"),
+            activeModelName === "kmeans",
         );
     }
 
@@ -300,6 +341,31 @@ document.addEventListener("DOMContentLoaded", function () {
             updateSelectedModels();
         });
     });
+
+    function activateModelSlot(slot) {
+        const modelName = slot.dataset.modelSlot;
+
+        if (!selectedModelNames().includes(modelName)) {
+            return;
+        }
+
+        activeModelName = modelName;
+        updateSelectedModels();
+    }
+
+    modelSlots.forEach(function (slot) {
+        slot.addEventListener("click", function () {
+            activateModelSlot(slot);
+        });
+
+        slot.addEventListener("keydown", function (event) {
+            if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                activateModelSlot(slot);
+            }
+        });
+    });
+
     updateSelectedModels();
 
     // ----------------------------------------------------

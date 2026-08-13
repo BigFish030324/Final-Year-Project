@@ -236,7 +236,7 @@
 
                 {% endif %}
 
-                <!-- 3. The same Render Dataset request returns charts and results. -->
+                <!-- 3. The selected models occupy fixed side-by-side slots. -->
                 {% if modelling_completed %}
                     <section class="content-card">
                         <h2>Modelling Completed</h2>
@@ -257,136 +257,166 @@
                             </ul>
                         </section>
                     {% endif %}
+                {% endif %}
 
-                    {% if result["decision_tree"] %}
-                        <section class="content-card result-section">
-                            <h2>Decision Tree Results</h2>
-                            <p>
-                                Model type: {{ result["decision_tree"]["task"] }}<br>
-                                Training percentage: {{ result["decision_tree"]["train_percent"] }}%<br>
-                                Testing percentage: {{ 100 - result["decision_tree"]["train_percent"] }}%<br>
-                                Training rows: {{ result["decision_tree"]["train_rows"] }}<br>
-                                Testing rows: {{ result["decision_tree"]["test_rows"] }}
-                            </p>
+                <section class="content-card comparison-stage">
+                    <div class="comparison-stage-heading">
+                        <div>
+                            <p class="section-label">Model Comparison</p>
+                            <h2>Model A and Model B</h2>
+                        </div>
+                        <p>Click a selected slot to edit its green-panel parameters.</p>
+                    </div>
 
-                            <h3>Metrics</h3>
-                            <ul class="metric-list">
-                                {% for metric_name, metric_value
-                                    in result["decision_tree"]["metrics"].items() %}
-                                    <li>
-                                        {{ metric_name | replace("_", " ") | title }}:
-                                        {{ metric_value }}
-                                    </li>
-                                {% endfor %}
-                            </ul>
-
-                            {% if result["decision_tree"]["task"] == "classification" %}
-                                <h3>Confusion Matrix</h3>
-                                <p>Rows are actual classes and columns are predicted classes.</p>
-
-                                {% set labels = result["decision_tree"]["details"]["labels"] %}
-                                {% set matrix = result["decision_tree"]["details"]["confusion_matrix"] %}
-
-                                <div class="table-container">
-                                    <table class="result-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Actual \ Predicted</th>
-                                                {% for label in labels %}
-                                                    <th>{{ label }}</th>
-                                                {% endfor %}
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {% for matrix_row in matrix %}
-                                                {% set actual_label = labels[loop.index0] %}
-                                                <tr>
-                                                    <th>{{ actual_label }}</th>
-                                                    {% for cell_value in matrix_row %}
-                                                        <td>{{ cell_value }}</td>
-                                                    {% endfor %}
-                                                </tr>
-                                            {% endfor %}
-                                        </tbody>
-                                    </table>
+                    <div class="model-slots">
+                        <article
+                            id="slot-decision-tree"
+                            class="model-slot"
+                            data-model-slot="decision_tree"
+                            tabindex="0"
+                        >
+                            <div class="model-slot-heading">
+                                <div>
+                                    <span class="model-family">Tree-based</span>
+                                    <h3>Decision Tree</h3>
                                 </div>
-                            {% else %}
-                                <h3>Example Predictions</h3>
-                                <div class="table-container">
-                                    <table class="result-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Actual value</th>
-                                                <th>Predicted value</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {% for actual_value
-                                                in result["decision_tree"]["details"]["actual"] %}
-                                                <tr>
-                                                    <td>{{ actual_value }}</td>
-                                                    <td>
-                                                        {{ result["decision_tree"]["details"]["predicted"][loop.index0] }}
-                                                    </td>
-                                                </tr>
-                                            {% endfor %}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            {% endif %}
-                        </section>
-                    {% endif %}
-
-                    {% if result["kmeans"] %}
-                        <section class="content-card result-section">
-                            <h2>K-Means Results</h2>
-                            <p>
-                                Number of clusters: {{ result["kmeans"]["number_of_clusters"] }}<br>
-                                Rows used: {{ result["kmeans"]["rows_used"] }}
-                            </p>
-
-                            <h3>Metrics</h3>
-                            <ul class="metric-list">
-                                {% for metric_name, metric_value
-                                    in result["kmeans"]["metrics"].items() %}
-                                    <li>
-                                        {{ metric_name | replace("_", " ") | title }}:
-                                        {{ metric_value }}
-                                    </li>
-                                {% endfor %}
-                            </ul>
-
-                            <h3>Cluster Sizes</h3>
-                            <div class="cluster-chart">
-                                {% for cluster_name, row_count
-                                    in result["kmeans"]["cluster_counts"].items() %}
-                                    {% set cluster_percent =
-                                        (row_count / result["kmeans"]["rows_used"] * 100)
-                                        | round(1)
-                                    %}
-                                    <div class="cluster-row">
-                                        <strong>{{ cluster_name }}</strong>
-                                        <div class="cluster-track">
-                                            <div
-                                                class="cluster-bar"
-                                                style="width: {{ cluster_percent }}%;"
-                                            ></div>
-                                        </div>
-                                        <span>
-                                            {{ row_count }} rows ({{ cluster_percent }}%)
-                                        </span>
-                                    </div>
-                                {% endfor %}
+                                <span class="slot-badge">Model A</span>
                             </div>
 
-                            <p>{{ result["kmeans"]["note"] }}</p>
-                        </section>
-                    {% endif %}
-                {% elif not uploaded_dataset %}
-                    <section class="content-card empty-state">
-                        <p>Charts and graphs will appear here after rendering.</p>
-                    </section>
-                {% endif %}
+                            <div class="slot-empty-content">
+                                <strong>Model A is empty</strong>
+                                <p>Select Decision Tree from the yellow panel or Model Library.</p>
+                            </div>
+
+                            <div class="slot-selected-content">
+                                {% if result and result["decision_tree"] %}
+                                    <p class="model-status completed-status">Completed</p>
+                                    <p>
+                                        Model type: {{ result["decision_tree"]["task"] }}<br>
+                                        Training: {{ result["decision_tree"]["train_percent"] }}%<br>
+                                        Testing: {{ 100 - result["decision_tree"]["train_percent"] }}%<br>
+                                        Rows: {{ result["decision_tree"]["train_rows"] }} train / {{ result["decision_tree"]["test_rows"] }} test
+                                    </p>
+
+                                    <h4>Metrics</h4>
+                                    <div class="slot-metrics">
+                                        {% for metric_name, metric_value
+                                            in result["decision_tree"]["metrics"].items() %}
+                                            <div class="metric-row">
+                                                <span>{{ metric_name | replace("_", " ") | title }}</span>
+                                                <strong>{{ metric_value }}</strong>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+
+                                    {% if result["decision_tree"]["task"] == "classification" %}
+                                        {% set labels = result["decision_tree"]["details"]["labels"] %}
+                                        {% set matrix = result["decision_tree"]["details"]["confusion_matrix"] %}
+                                        <h4>Confusion Matrix</h4>
+                                        <div class="table-container">
+                                            <table class="result-table slot-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Actual \ Predicted</th>
+                                                        {% for label in labels %}<th>{{ label }}</th>{% endfor %}
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for matrix_row in matrix %}
+                                                        <tr>
+                                                            <th>{{ labels[loop.index0] }}</th>
+                                                            {% for cell_value in matrix_row %}<td>{{ cell_value }}</td>{% endfor %}
+                                                        </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    {% else %}
+                                        <h4>Example Predictions</h4>
+                                        <div class="table-container">
+                                            <table class="result-table slot-table">
+                                                <thead><tr><th>Actual</th><th>Predicted</th></tr></thead>
+                                                <tbody>
+                                                    {% for actual_value in result["decision_tree"]["details"]["actual"] %}
+                                                        <tr>
+                                                            <td>{{ actual_value }}</td>
+                                                            <td>{{ result["decision_tree"]["details"]["predicted"][loop.index0] }}</td>
+                                                        </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    {% endif %}
+                                {% else %}
+                                    <p class="model-status ready-status">Ready</p>
+                                    <p>Upload a dataset and click Render Dataset to generate Decision Tree results.</p>
+                                {% endif %}
+                            </div>
+                        </article>
+
+                        <article
+                            id="slot-kmeans"
+                            class="model-slot"
+                            data-model-slot="kmeans"
+                            tabindex="0"
+                        >
+                            <div class="model-slot-heading">
+                                <div>
+                                    <span class="model-family">Clustering</span>
+                                    <h3>K-Means</h3>
+                                </div>
+                                <span class="slot-badge">Model B</span>
+                            </div>
+
+                            <div class="slot-empty-content">
+                                <strong>Model B is empty</strong>
+                                <p>Select K-Means from the yellow panel or Model Library.</p>
+                            </div>
+
+                            <div class="slot-selected-content">
+                                {% if result and result["kmeans"] %}
+                                    <p class="model-status completed-status">Completed</p>
+                                    <p>
+                                        Clusters: {{ result["kmeans"]["number_of_clusters"] }}<br>
+                                        Rows used: {{ result["kmeans"]["rows_used"] }}
+                                    </p>
+
+                                    <h4>Metrics</h4>
+                                    <div class="slot-metrics">
+                                        {% for metric_name, metric_value
+                                            in result["kmeans"]["metrics"].items() %}
+                                            <div class="metric-row">
+                                                <span>{{ metric_name | replace("_", " ") | title }}</span>
+                                                <strong>{{ metric_value }}</strong>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+
+                                    <h4>Cluster Sizes</h4>
+                                    <div class="cluster-chart">
+                                        {% for cluster_name, row_count
+                                            in result["kmeans"]["cluster_counts"].items() %}
+                                            {% set cluster_percent = (row_count / result["kmeans"]["rows_used"] * 100) | round(1) %}
+                                            <div class="cluster-row">
+                                                <strong>{{ cluster_name }}</strong>
+                                                <div class="cluster-track">
+                                                    <div class="cluster-bar" style="width: {{ cluster_percent }}%;"></div>
+                                                </div>
+                                                <span>{{ row_count }} rows ({{ cluster_percent }}%)</span>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                    <p>{{ result["kmeans"]["note"] }}</p>
+                                {% else %}
+                                    <p class="model-status ready-status">Ready</p>
+                                    <p>Upload a dataset and click Render Dataset to generate K-Means results.</p>
+                                {% endif %}
+                            </div>
+                        </article>
+                    </div>
+
+                    <p id="comparison-notice" class="comparison-notice"></p>
+                </section>
             </div>
 
             <!-- Model Library is a separate middle view selected from the menu. -->
