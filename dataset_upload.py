@@ -10,7 +10,7 @@ from error_handler import UserError
 
 
 # ----------------------------------------------------
-# Dataset Upload Configuration
+# Configuration
 # ----------------------------------------------------
 
 PROJECT_DIRECTORY = Path(__file__).resolve().parent

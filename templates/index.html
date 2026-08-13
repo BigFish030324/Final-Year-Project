@@ -34,7 +34,7 @@
 
 <body>
     <div class="application-layout">
-        <!-- Collapsible left panel based on the test environment sidebar. -->
+        <!-- Collapsible Navigation Sidebar -->
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-brand-row">
                 <a
@@ -119,35 +119,35 @@
                     <h1>Side-by-side Data Model Comparison</h1>
                 </header>
 
-                <!-- 1. Train/test split appears above dataset upload. -->
+                <!-- Comparison - Train Test Split -->
                 <section class="content-card split-section">
                     <h2>Train Test Split</h2>
 
                     <div class="split-grid">
                         <div>
-                            <label for="train-percent">
+                            <label for="training-percentage">
                                 Training percentage:
                             </label>
                             <input
-                                id="train-percent"
+                                id="training-percentage"
                                 type="number"
                                 min="1"
                                 max="99"
                                 step="1"
-                                value="{{ selected_train_percent }}"
+                                value="{{ selected_training_percentage }}"
                                 required
                             >
                             <small>Allowed range: 1% to 99%.</small>
                         </div>
 
                         <div>
-                            <label for="test-percent">
+                            <label for="testing-percentage-text">
                                 Testing percentage:
                             </label>
                             <input
-                                id="test-percent"
+                                id="testing-percentage-text"
                                 type="number"
-                                value="{{ 100 - selected_train_percent }}"
+                                value="{{ 100 - selected_training_percentage }}"
                                 readonly
                             >
                             <small>Automatically calculated from training.</small>
@@ -155,7 +155,7 @@
                     </div>
                 </section>
 
-                <!-- 2. One button uploads the dataset and renders all results. -->
+                <!-- Comparison - Upload Dataset and Render Results -->
                 <section class="content-card">
                     <h2>Upload Dataset</h2>
 
@@ -166,18 +166,18 @@
                         enctype="multipart/form-data"
                     >
                         <input
-                            id="upload-train-percent"
-                            name="train_percent"
+                            id="submitted-training-percentage"
+                            name="training_percentage"
                             type="hidden"
-                            value="{{ selected_train_percent }}"
+                            value="{{ selected_training_percentage }}"
                         >
-                        <div id="upload-model-fields"></div>
+                        <div id="submitted-data-model-fields"></div>
 
-                        <label for="dataset-upload">
+                        <label for="dataset-file-input">
                             Choose a CSV or XLSX dataset:
                         </label>
                         <input
-                            id="dataset-upload"
+                            id="dataset-file-input"
                             name="dataset"
                             type="file"
                             accept=".csv,.xlsx"
@@ -236,7 +236,7 @@
 
                 {% endif %}
 
-                <!-- 3. The selected models occupy fixed side-by-side slots. -->
+                <!-- Comparison - Side-by-side Data Model Cards -->
                 {% if modelling_completed %}
                     <section class="content-card">
                         <h2>Modelling Completed</h2>
@@ -259,50 +259,51 @@
                     {% endif %}
                 {% endif %}
 
-                <section class="content-card comparison-stage">
-                    <div class="comparison-stage-heading">
+                <section class="content-card comparison-data-model-selection-section">
+                    <div class="comparison-data-model-selection-heading">
                         <div>
                             <p class="section-label">Model Comparison</p>
-                            <h2>Model A and Model B</h2>
+                            <h2>Choose One or Two Models</h2>
                         </div>
-                        <p>Click a selected slot to edit its green-panel parameters.</p>
+                        <p>
+                            Results run automatically when a usable dataset
+                            and compatible model are ready.
+                        </p>
                     </div>
 
-                    <div class="model-slots">
+                    <div class="comparison-data-model-cards">
                         <article
-                            id="slot-decision-tree"
-                            class="model-slot"
-                            data-model-slot="decision_tree"
+                            id="comparison-decision-tree-data-model-card"
+                            class="comparison-data-model-card"
+                            data-comparison-model="decision_tree"
                             tabindex="0"
                         >
-                            <div class="model-slot-heading">
+                            <div class="comparison-data-model-card-heading">
                                 <div>
-                                    <span class="model-family">Tree-based</span>
+                                    <span class="comparison-data-model-family">Tree-based</span>
                                     <h3>Decision Tree</h3>
                                 </div>
-                                <span class="slot-badge">Model A</span>
+                                <span class="comparison-data-model-position-label">Model A</span>
                             </div>
 
-                            <div class="slot-empty-content">
-                                <strong>Model A is empty</strong>
-                                <p>Select Decision Tree from the yellow panel or Model Library.</p>
-                            </div>
+                            <!-- This stays visually blank until Decision Tree is selected. -->
+                            <div class="unselected-comparison-data-model-content" aria-hidden="true"></div>
 
-                            <div class="slot-selected-content">
+                            <div class="selected-comparison-data-model-content">
                                 {% if result and result["decision_tree"] %}
-                                    <p class="model-status completed-status">Completed</p>
+                                    <p class="comparison-data-model-status completed-data-model-status">Completed</p>
                                     <p>
                                         Model type: {{ result["decision_tree"]["task"] }}<br>
-                                        Training: {{ result["decision_tree"]["train_percent"] }}%<br>
-                                        Testing: {{ 100 - result["decision_tree"]["train_percent"] }}%<br>
+                                        Training: {{ result["decision_tree"]["training_percentage"] }}%<br>
+                                        Testing: {{ 100 - result["decision_tree"]["training_percentage"] }}%<br>
                                         Rows: {{ result["decision_tree"]["train_rows"] }} train / {{ result["decision_tree"]["test_rows"] }} test
                                     </p>
 
                                     <h4>Metrics</h4>
-                                    <div class="slot-metrics">
+                                    <div class="comparison-data-model-metrics">
                                         {% for metric_name, metric_value
                                             in result["decision_tree"]["metrics"].items() %}
-                                            <div class="metric-row">
+                                            <div class="data-model-metric-row">
                                                 <span>{{ metric_name | replace("_", " ") | title }}</span>
                                                 <strong>{{ metric_value }}</strong>
                                             </div>
@@ -314,7 +315,7 @@
                                         {% set matrix = result["decision_tree"]["details"]["confusion_matrix"] %}
                                         <h4>Confusion Matrix</h4>
                                         <div class="table-container">
-                                            <table class="result-table slot-table">
+                                            <table class="result-table comparison-data-model-result-table">
                                                 <thead>
                                                     <tr>
                                                         <th>Actual \ Predicted</th>
@@ -334,7 +335,7 @@
                                     {% else %}
                                         <h4>Example Predictions</h4>
                                         <div class="table-container">
-                                            <table class="result-table slot-table">
+                                            <table class="result-table comparison-data-model-result-table">
                                                 <thead><tr><th>Actual</th><th>Predicted</th></tr></thead>
                                                 <tbody>
                                                     {% for actual_value in result["decision_tree"]["details"]["actual"] %}
@@ -348,44 +349,42 @@
                                         </div>
                                     {% endif %}
                                 {% else %}
-                                    <p class="model-status ready-status">Ready</p>
+                                    <p class="comparison-data-model-status ready-data-model-status">Ready</p>
                                     <p>Upload a dataset and click Render Dataset to generate Decision Tree results.</p>
                                 {% endif %}
                             </div>
                         </article>
 
                         <article
-                            id="slot-kmeans"
-                            class="model-slot"
-                            data-model-slot="kmeans"
+                            id="comparison-kmeans-data-model-card"
+                            class="comparison-data-model-card"
+                            data-comparison-model="kmeans"
                             tabindex="0"
                         >
-                            <div class="model-slot-heading">
+                            <div class="comparison-data-model-card-heading">
                                 <div>
-                                    <span class="model-family">Clustering</span>
+                                    <span class="comparison-data-model-family">Clustering</span>
                                     <h3>K-Means</h3>
                                 </div>
-                                <span class="slot-badge">Model B</span>
+                                <span class="comparison-data-model-position-label">Model B</span>
                             </div>
 
-                            <div class="slot-empty-content">
-                                <strong>Model B is empty</strong>
-                                <p>Select K-Means from the yellow panel or Model Library.</p>
-                            </div>
+                            <!-- This stays visually blank until K-Means is selected. -->
+                            <div class="unselected-comparison-data-model-content" aria-hidden="true"></div>
 
-                            <div class="slot-selected-content">
+                            <div class="selected-comparison-data-model-content">
                                 {% if result and result["kmeans"] %}
-                                    <p class="model-status completed-status">Completed</p>
+                                    <p class="comparison-data-model-status completed-data-model-status">Completed</p>
                                     <p>
                                         Clusters: {{ result["kmeans"]["number_of_clusters"] }}<br>
                                         Rows used: {{ result["kmeans"]["rows_used"] }}
                                     </p>
 
                                     <h4>Metrics</h4>
-                                    <div class="slot-metrics">
+                                    <div class="comparison-data-model-metrics">
                                         {% for metric_name, metric_value
                                             in result["kmeans"]["metrics"].items() %}
-                                            <div class="metric-row">
+                                            <div class="data-model-metric-row">
                                                 <span>{{ metric_name | replace("_", " ") | title }}</span>
                                                 <strong>{{ metric_value }}</strong>
                                             </div>
@@ -408,63 +407,139 @@
                                     </div>
                                     <p>{{ result["kmeans"]["note"] }}</p>
                                 {% else %}
-                                    <p class="model-status ready-status">Ready</p>
+                                    <p class="comparison-data-model-status ready-data-model-status">Ready</p>
                                     <p>Upload a dataset and click Render Dataset to generate K-Means results.</p>
                                 {% endif %}
                             </div>
                         </article>
                     </div>
 
-                    <p id="comparison-notice" class="comparison-notice"></p>
+                    <p id="comparison-data-model-selection-message" class="comparison-data-model-selection-message"></p>
                 </section>
             </div>
 
             <!-- Model Library is a separate middle view selected from the menu. -->
             <div id="model-library" class="workspace-view" hidden>
-                <header class="page-heading">
-                    <p class="section-label">Model Library</p>
-                    <h1>Select Data Models</h1>
+                <header class="model-library-page-heading">
+                    <div>
+                        <p class="section-label">Learn Before You Choose</p>
+                        <h1>Model Library</h1>
+                        <p>
+                            Plain-language descriptions explain what each
+                            model does and when it is useful.
+                        </p>
+                    </div>
                 </header>
 
-                <section class="content-card model-library-section">
-                    <h2>Models to Run</h2>
-
-                    <div class="model-library-options">
-                        <div class="model-option">
+                <div id="model-library-data-model-cards" class="model-library-data-model-cards">
+                    <article
+                        class="model-library-data-model-card"
+                        data-model-library-card
+                        data-model-library-name="decision_tree"
+                    >
+                        <div class="model-library-data-model-card-heading">
+                            <div>
+                                <span class="model-library-data-model-family">Tree-based</span>
+                                <h2>Decision Tree</h2>
+                            </div>
                             <input
                                 id="select-decision-tree"
                                 data-model-choice
                                 type="checkbox"
                                 value="decision_tree"
-                                {% if "decision_tree" in selected_models %}checked{% endif %}
+                                {% if "decision_tree" in selected_data_models %}checked{% endif %}
+                                aria-label="Select Decision Tree"
                             >
-                            <label for="select-decision-tree">
-                                Decision Tree
-                            </label>
                         </div>
 
-                        <div class="model-option">
+                        <div class="data-model-supported-tasks">
+                            <span class="data-model-supported-task">Classification</span>
+                            <span class="data-model-supported-task">Regression</span>
+                        </div>
+
+                        <p>
+                            Learns easy-to-follow if/then decision rules from
+                            the dataset.
+                        </p>
+
+                        <div class="model-library-data-model-best-use">
+                            <strong>Best Used When</strong><br>
+                            Your dataset contains mixed or non-linear patterns,
+                            and you want a model whose decisions are easier to
+                            explain.
+                        </div>
+
+                        <div class="model-library-data-model-card-actions">
+                            <button
+                                class="add-data-model-to-comparison-button"
+                                type="button"
+                                data-add-model-to-comparison="decision_tree"
+                            >
+                                Use in Comparison
+                            </button>
+                        </div>
+                    </article>
+
+                    <article
+                        class="model-library-data-model-card"
+                        data-model-library-card
+                        data-model-library-name="kmeans"
+                    >
+                        <div class="model-library-data-model-card-heading">
+                            <div>
+                                <span class="model-library-data-model-family">Clustering</span>
+                                <h2>K-Means</h2>
+                            </div>
                             <input
                                 id="select-kmeans"
                                 data-model-choice
                                 type="checkbox"
                                 value="kmeans"
-                                {% if "kmeans" in selected_models %}checked{% endif %}
+                                {% if "kmeans" in selected_data_models %}checked{% endif %}
+                                aria-label="Select K-Means"
                             >
-                            <label for="select-kmeans">
-                                K-Means
-                            </label>
                         </div>
-                    </div>
 
-                    <p>
-                        Your choices are remembered when you return to Comparison.
-                    </p>
-                </section>
+                        <div class="data-model-supported-tasks">
+                            <span class="data-model-supported-task">Clustering</span>
+                        </div>
+
+                        <p>
+                            Groups similar dataset rows into clusters without
+                            requiring a prediction target for training.
+                        </p>
+
+                        <div class="model-library-data-model-best-use">
+                            <strong>Best Used When</strong><br>
+                            You want to explore natural groups in numeric data.
+                            K-Means discovers clusters rather than predicting a
+                            known outcome.
+                        </div>
+
+                        <div class="model-library-data-model-card-actions">
+                            <button
+                                class="add-data-model-to-comparison-button"
+                                type="button"
+                                data-add-model-to-comparison="kmeans"
+                            >
+                                Use in Comparison
+                            </button>
+                        </div>
+                    </article>
+                </div>
+
+                <div class="model-library-terminology-note">
+                    <strong>New to these terms?</strong>
+                    <span>
+                        Classification predicts a category, regression predicts
+                        a number, and clustering discovers groups without using
+                        a prediction target for training.
+                    </span>
+                </div>
             </div>
         </main>
 
-        <!-- Green: parameters only. Model selection belongs to Model Library. -->
+        <!-- Parameters - Selected Data Model Settings -->
         <aside id="parameters" class="parameters-panel">
             <p class="section-label">Selected Model Settings</p>
             <h2>Parameters</h2>
@@ -487,12 +562,13 @@
                 </p>
             {% endif %}
 
-            <div id="decision-tree-settings" class="parameter-group">
+            <div id="decision-tree-parameters" class="parameter-group">
                 <h3>Decision Tree</h3>
 
                 <div class="parameter-field">
-                    <label for="tree-criterion">Criterion:</label>
-                    <select id="tree-criterion" name="tree_criterion" form="upload-form">
+                    <!-- Parameters - Decision Tree - Split Quality Criterion -->
+                    <label for="decision-tree-split-quality-criterion-dropdown">Criterion:</label>
+                    <select id="decision-tree-split-quality-criterion-dropdown" name="decision_tree_split_quality_criterion" form="upload-form">
                         {% for value, label in [
                             ("auto", "Auto"),
                             ("gini", "Gini"),
@@ -505,7 +581,7 @@
                         ] %}
                             <option
                                 value="{{ value }}"
-                                {% if decision_tree_parameters["criterion"] == value %}selected{% endif %}
+                                {% if decision_tree_parameters["split_quality_criterion"] == value %}selected{% endif %}
                             >{{ label }}</option>
                         {% endfor %}
                     </select>
@@ -513,31 +589,36 @@
                 </div>
 
                 <div class="parameter-field">
-                    <label for="tree-splitter">Splitter:</label>
-                    <select id="tree-splitter" name="tree_splitter" form="upload-form">
-                        <option value="best" {% if decision_tree_parameters["splitter"] == "best" %}selected{% endif %}>Best</option>
-                        <option value="random" {% if decision_tree_parameters["splitter"] == "random" %}selected{% endif %}>Random</option>
+                    <!-- Parameters - Decision Tree - Split Selection Method -->
+                    <label for="decision-tree-split-selection-method-dropdown">Splitter:</label>
+                    <select id="decision-tree-split-selection-method-dropdown" name="decision_tree_split_selection_method" form="upload-form">
+                        <option value="best" {% if decision_tree_parameters["split_selection_method"] == "best" %}selected{% endif %}>Best</option>
+                        <option value="random" {% if decision_tree_parameters["split_selection_method"] == "random" %}selected{% endif %}>Random</option>
                     </select>
                 </div>
 
                 <div class="parameter-field">
-                    <label for="tree-max-depth">Maximum depth:</label>
-                    <input id="tree-max-depth" name="tree_max_depth" type="number" min="1" value="{{ decision_tree_parameters['max_depth'] }}" form="upload-form" required>
+                    <!-- Parameters - Decision Tree - Maximum Tree Depth -->
+                    <label for="decision-tree-maximum-depth-number">Maximum depth:</label>
+                    <input id="decision-tree-maximum-depth-number" name="decision_tree_maximum_depth" type="number" min="1" value="{{ decision_tree_parameters['maximum_depth'] }}" form="upload-form" required>
                 </div>
 
                 <div class="parameter-field">
-                    <label for="tree-min-split">Minimum samples to split:</label>
-                    <input id="tree-min-split" name="tree_min_samples_split" type="number" min="2" value="{{ decision_tree_parameters['min_samples_split'] }}" form="upload-form" required>
+                    <!-- Parameters - Decision Tree - Minimum Samples to Split -->
+                    <label for="decision-tree-minimum-samples-to-split-number">Minimum samples to split:</label>
+                    <input id="decision-tree-minimum-samples-to-split-number" name="decision_tree_minimum_samples_to_split" type="number" min="2" value="{{ decision_tree_parameters['minimum_samples_to_split'] }}" form="upload-form" required>
                 </div>
 
                 <div class="parameter-field">
-                    <label for="tree-min-leaf">Minimum samples per leaf:</label>
-                    <input id="tree-min-leaf" name="tree_min_samples_leaf" type="number" min="1" value="{{ decision_tree_parameters['min_samples_leaf'] }}" form="upload-form" required>
+                    <!-- Parameters - Decision Tree - Minimum Samples per Leaf -->
+                    <label for="decision-tree-minimum-samples-per-leaf-number">Minimum samples per leaf:</label>
+                    <input id="decision-tree-minimum-samples-per-leaf-number" name="decision_tree_minimum_samples_per_leaf" type="number" min="1" value="{{ decision_tree_parameters['minimum_samples_per_leaf'] }}" form="upload-form" required>
                 </div>
 
                 <div class="parameter-field">
-                    <label for="tree-max-features">Maximum features:</label>
-                    <select id="tree-max-features" name="tree_max_features" form="upload-form">
+                    <!-- Parameters - Decision Tree - Maximum Features per Split -->
+                    <label for="decision-tree-maximum-features-per-split-dropdown">Maximum features:</label>
+                    <select id="decision-tree-maximum-features-per-split-dropdown" name="decision_tree_maximum_features_per_split" form="upload-form">
                         {% for value, label in [
                             ("auto", "Auto"),
                             ("sqrt", "Square Root"),
@@ -546,52 +627,57 @@
                         ] %}
                             <option
                                 value="{{ value }}"
-                                {% if decision_tree_parameters["max_features"] == value %}selected{% endif %}
+                                {% if decision_tree_parameters["maximum_features_per_split"] == value %}selected{% endif %}
                             >{{ label }}</option>
                         {% endfor %}
                     </select>
                 </div>
             </div>
 
-            <div id="kmeans-settings" class="parameter-group">
+            <div id="kmeans-parameters" class="parameter-group">
                 <h3>K-Means</h3>
 
                 <div class="parameter-field">
-                    <label for="cluster-count">Clusters:</label>
+                    <!-- Parameters - K-Means - Number of Clusters -->
+                    <label for="kmeans-number-of-clusters-number">Clusters:</label>
                     <input
-                        id="cluster-count"
+                        id="kmeans-number-of-clusters-number"
                         name="number_of_clusters"
                         type="number"
                         min="2"
                         {% if uploaded_dataset %}max="{{ uploaded_dataset['rows'] - 1 }}"{% endif %}
                         step="1"
-                        value="{{ selected_cluster_count }}"
+                        value="{{ selected_number_of_clusters }}"
                         form="upload-form"
                         required
                     >
                 </div>
 
                 <div class="parameter-field">
-                    <label for="kmeans-init">Initialization:</label>
-                    <select id="kmeans-init" name="kmeans_init" form="upload-form">
-                        <option value="k-means++" {% if kmeans_parameters["init"] == "k-means++" %}selected{% endif %}>K-Means++</option>
-                        <option value="random" {% if kmeans_parameters["init"] == "random" %}selected{% endif %}>Random</option>
+                    <!-- Parameters - K-Means - Initialization Method -->
+                    <label for="kmeans-initialization-method-dropdown">Initialization:</label>
+                    <select id="kmeans-initialization-method-dropdown" name="kmeans_initialization_method" form="upload-form">
+                        <option value="k-means++" {% if kmeans_parameters["initialization_method"] == "k-means++" %}selected{% endif %}>K-Means++</option>
+                        <option value="random" {% if kmeans_parameters["initialization_method"] == "random" %}selected{% endif %}>Random</option>
                     </select>
                 </div>
 
                 <div class="parameter-field">
-                    <label for="kmeans-n-init">Restart count:</label>
-                    <input id="kmeans-n-init" name="kmeans_n_init" type="number" min="1" value="{{ kmeans_parameters['n_init'] }}" form="upload-form" required>
+                    <!-- Parameters - K-Means - Restart Count -->
+                    <label for="kmeans-restart-count-number">Restart count:</label>
+                    <input id="kmeans-restart-count-number" name="kmeans_restart_count" type="number" min="1" value="{{ kmeans_parameters['restart_count'] }}" form="upload-form" required>
                 </div>
 
                 <div class="parameter-field">
-                    <label for="kmeans-max-iter">Maximum iterations:</label>
-                    <input id="kmeans-max-iter" name="kmeans_max_iter" type="number" min="1" value="{{ kmeans_parameters['max_iter'] }}" form="upload-form" required>
+                    <!-- Parameters - K-Means - Maximum Iterations -->
+                    <label for="kmeans-maximum-iterations-number">Maximum iterations:</label>
+                    <input id="kmeans-maximum-iterations-number" name="kmeans_maximum_iterations" type="number" min="1" value="{{ kmeans_parameters['maximum_iterations'] }}" form="upload-form" required>
                 </div>
 
                 <div class="parameter-field">
-                    <label for="kmeans-tolerance">Tolerance:</label>
-                    <input id="kmeans-tolerance" name="kmeans_tolerance" type="number" min="0.000001" step="0.000001" value="{{ kmeans_parameters['tolerance'] }}" form="upload-form" required>
+                    <!-- Parameters - K-Means - Convergence Tolerance -->
+                    <label for="kmeans-convergence-tolerance-number">Tolerance:</label>
+                    <input id="kmeans-convergence-tolerance-number" name="kmeans_convergence_tolerance" type="number" min="0.000001" step="0.000001" value="{{ kmeans_parameters['convergence_tolerance'] }}" form="upload-form" required>
                 </div>
 
                 <small>
@@ -604,61 +690,94 @@
             </div>
         </aside>
 
-        <!-- Yellow: quick model selection shown only on Comparison. -->
+        <!-- Comparison - Data Model Selection -->
         <section
-            id="model-dock"
-            class="model-dock"
+            id="data-model-selection"
+            class="data-model-selection"
             aria-label="Quick model selection"
         >
-            <div class="model-dock-toolbar">
+            <div class="data-model-selection-heading">
                 <div>
                     <h2>Data Model Selection</h2>
                     <p>Select models without leaving Comparison.</p>
                 </div>
 
                 <button
-                    id="model-dock-toggle"
-                    class="model-dock-toggle"
+                    id="data-model-selection-minimize-button"
+                    class="data-model-selection-minimize-button"
                     type="button"
                     aria-expanded="true"
-                    aria-controls="model-dock-content"
+                    aria-controls="data-model-selection-cards"
                     aria-label="Minimize data model selection"
                     title="Minimize data model selection"
                 >
                     <svg viewBox="0 0 24 24" aria-hidden="true">
-                        <path class="dock-collapse-icon" d="m5 9 7 7 7-7"></path>
-                        <path class="dock-expand-icon" d="m5 15 7-7 7 7"></path>
+                        <path class="data-model-selection-minimize-icon" d="m5 9 7 7 7-7"></path>
+                        <path class="data-model-selection-expand-icon" d="m5 15 7-7 7 7"></path>
                     </svg>
                 </button>
             </div>
 
-            <div id="model-dock-content" class="model-dock-content">
-                <label class="dock-model-option" for="dock-decision-tree">
-                    <input
-                        id="dock-decision-tree"
-                        data-model-choice
-                        type="checkbox"
-                        value="decision_tree"
-                        {% if "decision_tree" in selected_models %}checked{% endif %}
-                    >
-                    <span>
-                        <strong>Decision Tree</strong>
-                        <small>Classification or regression</small>
-                    </span>
+            <div id="data-model-selection-cards" class="data-model-selection-cards">
+                <label class="model-library-data-model-card data-model-selection-card" for="data-model-selection-decision-tree-checkbox">
+                    <div class="model-library-data-model-card-heading">
+                        <div>
+                            <span class="model-library-data-model-family">Tree-based</span>
+                            <h3>Decision Tree</h3>
+                        </div>
+                        <input
+                            id="data-model-selection-decision-tree-checkbox"
+                            data-model-choice
+                            type="checkbox"
+                            value="decision_tree"
+                            {% if "decision_tree" in selected_data_models %}checked{% endif %}
+                        >
+                    </div>
+
+                    <div class="data-model-supported-tasks">
+                        <span class="data-model-supported-task">Classification</span>
+                        <span class="data-model-supported-task">Regression</span>
+                    </div>
+
+                    <p>
+                        Learns understandable if/then rules for predicting a
+                        category or number.
+                    </p>
+
+                    <div class="data-model-selection-card-best-used-when-description">
+                        <strong>Best Used When</strong><br>
+                        You want an interpretable model for mixed patterns.
+                    </div>
                 </label>
 
-                <label class="dock-model-option" for="dock-kmeans">
-                    <input
-                        id="dock-kmeans"
-                        data-model-choice
-                        type="checkbox"
-                        value="kmeans"
-                        {% if "kmeans" in selected_models %}checked{% endif %}
-                    >
-                    <span>
-                        <strong>K-Means</strong>
-                        <small>Clustering</small>
-                    </span>
+                <label class="model-library-data-model-card data-model-selection-card" for="data-model-selection-kmeans-checkbox">
+                    <div class="model-library-data-model-card-heading">
+                        <div>
+                            <span class="model-library-data-model-family">Clustering</span>
+                            <h3>K-Means</h3>
+                        </div>
+                        <input
+                            id="data-model-selection-kmeans-checkbox"
+                            data-model-choice
+                            type="checkbox"
+                            value="kmeans"
+                            {% if "kmeans" in selected_data_models %}checked{% endif %}
+                        >
+                    </div>
+
+                    <div class="data-model-supported-tasks">
+                        <span class="data-model-supported-task">Clustering</span>
+                    </div>
+
+                    <p>
+                        Discovers natural groups in the dataset without using
+                        the prediction target for training.
+                    </p>
+
+                    <div class="data-model-selection-card-best-used-when-description">
+                        <strong>Best Used When</strong><br>
+                        You want to explore similar groups in numeric data.
+                    </div>
                 </label>
             </div>
         </section>

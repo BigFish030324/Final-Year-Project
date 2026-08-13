@@ -126,9 +126,9 @@ def print_model_result(result: dict[str, Any],) -> None:
 def run_dataset(
     dataset_path: Path,
     target_column: str,
-    train_percent: int = 70,
+    training_percentage: int = 70,
     number_of_clusters: int = 3,
-    selected_models: list[str] | tuple[str, ...] = (
+    selected_data_models: list[str] | tuple[str, ...] = (
         "decision_tree",
         "kmeans",
     ),
@@ -139,18 +139,18 @@ def run_dataset(
     frame = read_dataset(dataset_path)
     print_dataset_summary(frame, dataset_path, target_column,)
 
-    allowed_models = {
+    allowed_data_models = {
         "decision_tree",
         "kmeans",
     }
-    model_selection = set(selected_models)
+    selected_data_model_names = set(selected_data_models)
 
-    if not model_selection:
+    if not selected_data_model_names:
         raise UserError(
             "Choose at least one model to run."
         )
 
-    if not model_selection.issubset(allowed_models):
+    if not selected_data_model_names.issubset(allowed_data_models):
         raise UserError(
             "The selected model is not available."
         )
@@ -159,13 +159,13 @@ def run_dataset(
     kmeans_result = None
 
     # ----------------------------------------------------
-    # Run Decision Tree
+    # Decision Tree
     # ----------------------------------------------------
-    if "decision_tree" in model_selection:
+    if "decision_tree" in selected_data_model_names:
         decision_tree_result = decision_tree(
             frame,
             target_column=target_column,
-            train_percent=train_percent,
+            training_percentage=training_percentage,
             parameters=decision_tree_parameters,
             seed=seed,
         )
@@ -174,7 +174,7 @@ def run_dataset(
     # ----------------------------------------------------
     # Run K-Means
     # ----------------------------------------------------
-    if "kmeans" in model_selection:
+    if "kmeans" in selected_data_model_names:
         kmeans_result = k_means(
             frame,
             target_column=target_column,
@@ -196,7 +196,7 @@ def run_dataset(
             "columns": len(frame.columns),
             "target": target_column,
         },
-        "models_run": list(selected_models),
+        "data_models_run": list(selected_data_models),
         "decision_tree": decision_tree_result,
         "kmeans": kmeans_result,
     }

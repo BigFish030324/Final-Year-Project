@@ -7,39 +7,51 @@ document.addEventListener("DOMContentLoaded", function () {
     );
     const brandLink = document.querySelector(".brand");
 
-    const trainingInput = document.getElementById("train-percent");
-    const testingInput = document.getElementById("test-percent");
-    const uploadTrainInput = document.getElementById(
-        "upload-train-percent",
+    const trainingPercentageInput = document.getElementById(
+        "training-percentage",
     );
-    const uploadModelFields = document.getElementById(
-        "upload-model-fields",
+    const testingPercentageText = document.getElementById(
+        "testing-percentage-text",
+    );
+    const submittedTrainingPercentageInput = document.getElementById(
+        "submitted-training-percentage",
+    );
+    const submittedDataModelFields = document.getElementById(
+        "submitted-data-model-fields",
     );
 
-    const decisionTreeSettings = document.getElementById(
-        "decision-tree-settings",
+    const decisionTreeParameters = document.getElementById(
+        "decision-tree-parameters",
     );
-    const kMeansSettings = document.getElementById("kmeans-settings");
-    const modelCheckboxes = Array.from(
+    const kmeansParameters = document.getElementById("kmeans-parameters");
+    const dataModelSelectionCheckboxes = Array.from(
         document.querySelectorAll("[data-model-choice]"),
     );
-    const modelSlots = Array.from(
-        document.querySelectorAll("[data-model-slot]"),
+    const comparisonDataModelCards = Array.from(
+        document.querySelectorAll("[data-comparison-model]"),
     );
-    const comparisonNotice = document.getElementById(
-        "comparison-notice",
+    const comparisonDataModelSelectionMessage = document.getElementById(
+        "comparison-data-model-selection-message",
     );
-    let activeModelName = null;
+    const modelLibraryDataModelCards = Array.from(
+        document.querySelectorAll("[data-model-library-card]"),
+    );
+    const addDataModelToComparisonButtons = document.querySelectorAll(
+        "[data-add-model-to-comparison]",
+    );
+    let activeDataModelName = null;
 
     const viewLinks = document.querySelectorAll("[data-view-link]");
     const workspaceViews = document.querySelectorAll(".workspace-view");
-    const modelDock = document.getElementById("model-dock");
-    const modelDockToggle = document.getElementById(
-        "model-dock-toggle",
+    const dataModelSelection = document.getElementById(
+        "data-model-selection",
+    );
+    const dataModelSelectionMinimizeButton = document.getElementById(
+        "data-model-selection-minimize-button",
     );
 
     // ----------------------------------------------------
-    // Collapsible Left Sidebar
+    // Collapsible Navigation Sidebar
     // ----------------------------------------------------
 
     function updateSidebarCollapse(collapsed) {
@@ -108,20 +120,25 @@ document.addEventListener("DOMContentLoaded", function () {
     // Comparison and Model Library Navigation
     // ----------------------------------------------------
 
-    function syncModelDockSpacing() {
-        if (!modelDock || modelDock.hidden) {
-            document.body.classList.remove("model-dock-visible");
+    function updateDataModelSelectionSpacing() {
+        if (!dataModelSelection || dataModelSelection.hidden) {
+            document.body.classList.remove("data-model-selection-visible");
             return;
         }
 
-        document.body.classList.add("model-dock-visible");
+        document.body.classList.add("data-model-selection-visible");
         document.documentElement.style.setProperty(
-            "--model-dock-clearance",
-            `${Math.ceil(modelDock.getBoundingClientRect().height) + 34}px`,
+            "--data-model-selection-clearance",
+            `${Math.ceil(dataModelSelection.getBoundingClientRect().height) + 34}px`,
         );
     }
 
     function showWorkspace(viewName) {
+        applicationLayout.classList.toggle(
+            "model-library-open",
+            viewName === "model-library",
+        );
+
         workspaceViews.forEach(function (view) {
             view.hidden = view.id !== viewName;
         });
@@ -136,10 +153,10 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
 
-        if (modelDock) {
-            modelDock.hidden = viewName !== "comparison";
+        if (dataModelSelection) {
+            dataModelSelection.hidden = viewName !== "comparison";
         }
-        syncModelDockSpacing();
+        updateDataModelSelectionSpacing();
 
         window.history.replaceState(null, "", `#${viewName}`);
     }
@@ -159,53 +176,55 @@ document.addEventListener("DOMContentLoaded", function () {
     showWorkspace(firstView);
 
     // ----------------------------------------------------
-    // Yellow Bottom Model Dock
+    // Comparison - Data Model Selection
     // ----------------------------------------------------
 
-    function updateModelDockCollapse(collapsed) {
-        modelDock.classList.toggle("collapsed", collapsed);
-        modelDockToggle.setAttribute(
+    function updateDataModelSelectionMinimizedState(minimized) {
+        dataModelSelection.classList.toggle("collapsed", minimized);
+        dataModelSelectionMinimizeButton.setAttribute(
             "aria-expanded",
-            String(!collapsed),
+            String(!minimized),
         );
-        modelDockToggle.setAttribute(
+        dataModelSelectionMinimizeButton.setAttribute(
             "aria-label",
-            collapsed
+            minimized
                 ? "Expand data model selection"
                 : "Minimize data model selection",
         );
-        modelDockToggle.title = (
-            collapsed
+        dataModelSelectionMinimizeButton.title = (
+            minimized
                 ? "Expand data model selection"
                 : "Minimize data model selection"
         );
-        window.requestAnimationFrame(syncModelDockSpacing);
+        window.requestAnimationFrame(updateDataModelSelectionSpacing);
     }
 
-    // Begin every new page load with the yellow model panel minimized.
-    updateModelDockCollapse(true);
+    // Begin every new page load with Data Model Selection minimized.
+    updateDataModelSelectionMinimizedState(true);
 
-    modelDockToggle.addEventListener("click", function () {
-        const collapsed = !modelDock.classList.contains("collapsed");
-        updateModelDockCollapse(collapsed);
+    dataModelSelectionMinimizeButton.addEventListener("click", function () {
+        const minimized = !dataModelSelection.classList.contains("collapsed");
+        updateDataModelSelectionMinimizedState(minimized);
     });
 
     if (window.ResizeObserver) {
-        new ResizeObserver(syncModelDockSpacing).observe(modelDock);
+        new ResizeObserver(updateDataModelSelectionSpacing).observe(
+            dataModelSelection,
+        );
     }
-    window.addEventListener("resize", syncModelDockSpacing);
+    window.addEventListener("resize", updateDataModelSelectionSpacing);
 
     // ----------------------------------------------------
-    // Synchronized Model Choices
+    // Comparison and Model Library - Synchronized Data Model Checkboxes
     // ----------------------------------------------------
 
     try {
         const rememberedModels = JSON.parse(
-            window.sessionStorage.getItem("selected_models"),
+            window.sessionStorage.getItem("selected_data_models"),
         );
 
         if (Array.isArray(rememberedModels)) {
-            modelCheckboxes.forEach(function (checkbox) {
+            dataModelSelectionCheckboxes.forEach(function (checkbox) {
                 checkbox.checked = rememberedModels.includes(
                     checkbox.value,
                 );
@@ -215,10 +234,10 @@ document.addEventListener("DOMContentLoaded", function () {
         // Keep the model choices provided by Flask.
     }
 
-    function selectedModelNames() {
+    function getSelectedDataModelNames() {
         return Array.from(
             new Set(
-                modelCheckboxes
+                dataModelSelectionCheckboxes
                     .filter(function (checkbox) {
                         return checkbox.checked;
                     })
@@ -229,23 +248,23 @@ document.addEventListener("DOMContentLoaded", function () {
         );
     }
 
-    function writeModelFields(container, selectedModels) {
+    function writeSubmittedDataModelFields(container, selectedDataModels) {
         if (!container) {
             return;
         }
 
         container.replaceChildren();
 
-        selectedModels.forEach(function (modelName) {
+        selectedDataModels.forEach(function (dataModelName) {
             const hiddenInput = document.createElement("input");
             hiddenInput.type = "hidden";
-            hiddenInput.name = "selected_models";
-            hiddenInput.value = modelName;
+            hiddenInput.name = "selected_data_models";
+            hiddenInput.value = dataModelName;
             container.appendChild(hiddenInput);
         });
     }
 
-    function updateParameterSection(section, isSelected) {
+    function updateDataModelParameterSection(section, isSelected) {
         if (!section) {
             return;
         }
@@ -258,121 +277,151 @@ document.addEventListener("DOMContentLoaded", function () {
         );
     }
 
-    function updateSelectedModels() {
-        const selectedModels = selectedModelNames();
+    function updateSelectedDataModels() {
+        const selectedDataModels = getSelectedDataModelNames();
 
-        if (!selectedModels.includes(activeModelName)) {
-            activeModelName = selectedModels[0] || null;
+        if (!selectedDataModels.includes(activeDataModelName)) {
+            activeDataModelName = selectedDataModels[0] || null;
         }
 
         try {
             window.sessionStorage.setItem(
-                "selected_models",
-                JSON.stringify(selectedModels),
+                "selected_data_models",
+                JSON.stringify(selectedDataModels),
             );
         } catch (_error) {
             // The current page still remembers matching checkbox states.
         }
 
-        writeModelFields(uploadModelFields, selectedModels);
+        writeSubmittedDataModelFields(
+            submittedDataModelFields,
+            selectedDataModels,
+        );
 
-        modelSlots.forEach(function (slot) {
-            const isSelected = selectedModels.includes(
-                slot.dataset.modelSlot,
+        comparisonDataModelCards.forEach(function (dataModelCard) {
+            const isSelected = selectedDataModels.includes(
+                dataModelCard.dataset.comparisonModel,
             );
-            slot.classList.toggle("selected", isSelected);
-            slot.classList.toggle(
+            dataModelCard.classList.toggle("selected", isSelected);
+            dataModelCard.classList.toggle(
                 "active",
-                isSelected && slot.dataset.modelSlot === activeModelName,
+                isSelected && dataModelCard.dataset.comparisonModel === activeDataModelName,
             );
-            slot.setAttribute("aria-selected", String(isSelected));
+            dataModelCard.setAttribute("aria-selected", String(isSelected));
         });
 
-        if (comparisonNotice) {
-            if (selectedModels.length === 0) {
-                comparisonNotice.textContent = (
-                    "Choose at least one model from the yellow panel or Model Library."
+        modelLibraryDataModelCards.forEach(function (dataModelCard) {
+            dataModelCard.classList.toggle(
+                "selected",
+                selectedDataModels.includes(dataModelCard.dataset.modelLibraryName),
+            );
+        });
+
+        if (comparisonDataModelSelectionMessage) {
+            if (selectedDataModels.length === 0) {
+                comparisonDataModelSelectionMessage.textContent = (
+                    "Choose at least one model from Data Model Selection or Model Library."
                 );
-            } else if (selectedModels.length === 1) {
-                comparisonNotice.textContent = (
-                    "One model is selected. The second comparison slot is optional."
+            } else if (selectedDataModels.length === 1) {
+                comparisonDataModelSelectionMessage.textContent = (
+                    "One model is selected. The second comparison card is optional."
                 );
             } else {
-                comparisonNotice.textContent = (
+                comparisonDataModelSelectionMessage.textContent = (
                     "Both models are selected and ready for side-by-side comparison."
                 );
             }
         }
 
-        // Only the active selected slot displays its parameters.
-        updateParameterSection(
-            decisionTreeSettings,
-            activeModelName === "decision_tree",
+        // Parameters - Show Only the Active Selected Data Model
+        updateDataModelParameterSection(
+            decisionTreeParameters,
+            activeDataModelName === "decision_tree",
         );
-        updateParameterSection(
-            kMeansSettings,
-            activeModelName === "kmeans",
+        updateDataModelParameterSection(
+            kmeansParameters,
+            activeDataModelName === "kmeans",
         );
     }
 
-    modelCheckboxes.forEach(function (checkbox) {
+    dataModelSelectionCheckboxes.forEach(function (checkbox) {
         checkbox.addEventListener("change", function () {
-            modelCheckboxes.forEach(function (matchingCheckbox) {
+            dataModelSelectionCheckboxes.forEach(function (matchingCheckbox) {
                 if (matchingCheckbox.value === checkbox.value) {
                     matchingCheckbox.checked = checkbox.checked;
                 }
             });
-            updateSelectedModels();
+            updateSelectedDataModels();
         });
     });
 
-    function activateModelSlot(slot) {
-        const modelName = slot.dataset.modelSlot;
+    function activateComparisonDataModelCard(dataModelCard) {
+        const dataModelName = dataModelCard.dataset.comparisonModel;
 
-        if (!selectedModelNames().includes(modelName)) {
+        if (!getSelectedDataModelNames().includes(dataModelName)) {
             return;
         }
 
-        activeModelName = modelName;
-        updateSelectedModels();
+        activeDataModelName = dataModelName;
+        updateSelectedDataModels();
     }
 
-    modelSlots.forEach(function (slot) {
-        slot.addEventListener("click", function () {
-            activateModelSlot(slot);
+    comparisonDataModelCards.forEach(function (dataModelCard) {
+        dataModelCard.addEventListener("click", function () {
+            activateComparisonDataModelCard(dataModelCard);
         });
 
-        slot.addEventListener("keydown", function (event) {
+        dataModelCard.addEventListener("keydown", function (event) {
             if (event.key === "Enter" || event.key === " ") {
                 event.preventDefault();
-                activateModelSlot(slot);
+                activateComparisonDataModelCard(dataModelCard);
             }
         });
     });
 
-    updateSelectedModels();
+    // ----------------------------------------------------
+    // Model Library - Add Data Model to Comparison Button
+    // ----------------------------------------------------
+
+    addDataModelToComparisonButtons.forEach(function (button) {
+        button.addEventListener("click", function () {
+            const dataModelName = button.dataset.addModelToComparison;
+
+            dataModelSelectionCheckboxes.forEach(function (checkbox) {
+                if (checkbox.value === dataModelName) {
+                    checkbox.checked = true;
+                }
+            });
+
+            activeDataModelName = dataModelName;
+            updateSelectedDataModels();
+            showWorkspace("comparison");
+        });
+    });
+
+    updateSelectedDataModels();
 
     // ----------------------------------------------------
-    // Linked Train and Test Percentages
+    // Comparison - Linked Training and Testing Percentages
     // ----------------------------------------------------
 
     function updateTestingPercentage() {
-        const trainingPercentage = Number(trainingInput.value);
+        const trainingPercentage = Number(trainingPercentageInput.value);
 
         if (!Number.isFinite(trainingPercentage)) {
-            testingInput.value = "";
+            testingPercentageText.value = "";
             return;
         }
 
-        testingInput.value = 100 - trainingPercentage;
+        testingPercentageText.value = 100 - trainingPercentage;
 
-        if (uploadTrainInput) {
-            uploadTrainInput.value = trainingPercentage;
+        if (submittedTrainingPercentageInput) {
+            submittedTrainingPercentageInput.value = trainingPercentage;
         }
     }
 
-    if (trainingInput && testingInput) {
-        trainingInput.addEventListener("input", updateTestingPercentage);
+    if (trainingPercentageInput && testingPercentageText) {
+        trainingPercentageInput.addEventListener("input", updateTestingPercentage);
         updateTestingPercentage();
     }
 });

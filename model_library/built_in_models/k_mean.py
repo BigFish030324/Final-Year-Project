@@ -1,6 +1,6 @@
 
 # ----------------------------------------------------
-# Prepare, train & evaluate K-Means
+# Prepare Data, Train Model and Evaluate Results
 # ----------------------------------------------------
 
 from __future__ import annotations
@@ -14,7 +14,7 @@ from model_library.model_helpers import build_preprocessor
 
 
 # ----------------------------------------------------
-# K-Means
+# Main Modelling Function
 # ----------------------------------------------------
 
 def k_means(
@@ -69,20 +69,20 @@ def k_means(
 
     # Start with the same K-Means defaults as the test environment.
     model_parameters = {
-        "init": "k-means++",
-        "n_init": 10,
-        "max_iter": 300,
-        "tolerance": 0.0001,
+        "initialization_method": "k-means++",
+        "restart_count": 10,
+        "maximum_iterations": 300,
+        "convergence_tolerance": 0.0001,
     }
     model_parameters.update(parameters or {})
 
     # Create the K-Means model
     model = KMeans(
         n_clusters=number_of_clusters,
-        init=model_parameters["init"],
-        n_init=model_parameters["n_init"],
-        max_iter=model_parameters["max_iter"],
-        tol=model_parameters["tolerance"],
+        init=model_parameters["initialization_method"],
+        n_init=model_parameters["restart_count"],
+        max_iter=model_parameters["maximum_iterations"],
+        tol=model_parameters["convergence_tolerance"],
         random_state=seed,
     )
 

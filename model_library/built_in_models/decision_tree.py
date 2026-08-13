@@ -1,6 +1,6 @@
 
 # ----------------------------------------------------
-# Prepare, train & evaluate Decision Tree
+# Prepare Data, Train Model and Evaluate Results
 # ----------------------------------------------------
 
 from __future__ import annotations
@@ -19,13 +19,13 @@ from model_library.model_helpers import (
 
 
 # ----------------------------------------------------
-# Decision Tree
+# Main Modelling Function
 # ----------------------------------------------------
 
 def decision_tree(
     frame: pd.DataFrame,
     target_column: str,
-    train_percent: int = 70,
+    training_percentage: int = 70,
     parameters: dict[str, Any] | None = None,
     seed: int = 42,
 ) -> dict[str, Any]:
@@ -65,13 +65,13 @@ def decision_tree(
 
     # Both groups need a percentage. Extreme values are allowed so the user
     # can experiment and observe why an unbalanced split may perform poorly.
-    if train_percent < 1 or train_percent > 99:
+    if training_percentage < 1 or training_percentage > 99:
         raise UserError(
             "The Decision Tree training percentage must be between 1 and 99."
         )
 
     estimated_train_rows = math.floor(
-        len(usable_data) * train_percent / 100
+        len(usable_data) * training_percentage / 100
     )
     estimated_test_rows = len(usable_data) - estimated_train_rows
 
@@ -103,16 +103,16 @@ def decision_tree(
     # Start with the same Decision Tree defaults as the test environment,
     # then replace them with any values chosen in the green parameter panel.
     model_parameters = {
-        "criterion": "auto",
-        "splitter": "best",
-        "max_depth": 8,
-        "min_samples_split": 2,
-        "min_samples_leaf": 1,
-        "max_features": "auto",
+        "split_quality_criterion": "auto",
+        "split_selection_method": "best",
+        "maximum_depth": 8,
+        "minimum_samples_to_split": 2,
+        "minimum_samples_per_leaf": 1,
+        "maximum_features_per_split": "auto",
     }
     model_parameters.update(parameters or {})
 
-    criterion = model_parameters["criterion"]
+    criterion = model_parameters["split_quality_criterion"]
     if criterion == "auto":
         criterion = "gini" if task == "classification" else "squared_error"
 
@@ -127,9 +127,9 @@ def decision_tree(
             "Choose Auto or a criterion that matches the detected task."
         )
 
-    max_features = model_parameters["max_features"]
-    if max_features in {"auto", "none"}:
-        max_features = None
+    maximum_features_per_split = model_parameters["maximum_features_per_split"]
+    if maximum_features_per_split in {"auto", "none"}:
+        maximum_features_per_split = None
 
     # Create the shared numeric and categorical preprocessor
     preprocessor = build_preprocessor(features)
@@ -138,11 +138,11 @@ def decision_tree(
     if task == "classification":
         estimator = DecisionTreeClassifier(
             criterion=criterion,
-            splitter=model_parameters["splitter"],
-            max_depth=model_parameters["max_depth"],
-            min_samples_split=model_parameters["min_samples_split"],
-            min_samples_leaf=model_parameters["min_samples_leaf"],
-            max_features=max_features,
+            splitter=model_parameters["split_selection_method"],
+            max_depth=model_parameters["maximum_depth"],
+            min_samples_split=model_parameters["minimum_samples_to_split"],
+            min_samples_leaf=model_parameters["minimum_samples_per_leaf"],
+            max_features=maximum_features_per_split,
             random_state=seed,
         )
 
@@ -163,11 +163,11 @@ def decision_tree(
     else:
         estimator = DecisionTreeRegressor(
             criterion=criterion,
-            splitter=model_parameters["splitter"],
-            max_depth=model_parameters["max_depth"],
-            min_samples_split=model_parameters["min_samples_split"],
-            min_samples_leaf=model_parameters["min_samples_leaf"],
-            max_features=max_features,
+            splitter=model_parameters["split_selection_method"],
+            max_depth=model_parameters["maximum_depth"],
+            min_samples_split=model_parameters["minimum_samples_to_split"],
+            min_samples_leaf=model_parameters["minimum_samples_per_leaf"],
+            max_features=maximum_features_per_split,
             random_state=seed,
         )
 
@@ -182,7 +182,7 @@ def decision_tree(
     ) = train_test_split(
         features,
         target,
-        train_size=train_percent / 100,
+        train_size=training_percentage / 100,
         random_state=seed,
         stratify=stratify,
     )
@@ -318,7 +318,7 @@ def decision_tree(
         "task": task,
         "task_reason": task_reason,
         "target": target_column,
-        "train_percent": train_percent,
+        "training_percentage": training_percentage,
         "parameters": model_parameters,
         "feature_columns": feature_columns,
         "train_rows": len(features_train),
