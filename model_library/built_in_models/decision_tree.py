@@ -28,6 +28,7 @@ def decision_tree(
     training_percentage: int = 70,
     parameters: dict[str, Any] | None = None,
     seed: int = 42,
+    selected_input_columns: list[str] | tuple[str, ...] | None = None,
 ) -> dict[str, Any]:
     from sklearn.metrics import (
         accuracy_score,
@@ -81,12 +82,37 @@ def decision_tree(
             "The split must create at least one training row and one testing row."
         )
 
-    # Use every column except the prediction target and identifier
-    feature_columns = [
-        column
-        for column in usable_data.columns
-        if column not in {target_column, "Id"}
-    ]
+    # Use the columns selected by the user. Before a selection exists,
+    # use every column except the prediction target and common identifiers.
+    if selected_input_columns is None:
+        feature_columns = [
+            column
+            for column in usable_data.columns
+            if (
+                column != target_column
+                and column.lower() not in {"id", "index"}
+            )
+        ]
+    else:
+        feature_columns = list(
+            dict.fromkeys(selected_input_columns)
+        )
+
+        unavailable_columns = [
+            column
+            for column in feature_columns
+            if column not in usable_data.columns
+        ]
+        if unavailable_columns:
+            raise UserError(
+                "One or more selected input columns are unavailable."
+            )
+
+        feature_columns = [
+            column
+            for column in feature_columns
+            if column != target_column
+        ]
 
     if not feature_columns:
         raise UserError(

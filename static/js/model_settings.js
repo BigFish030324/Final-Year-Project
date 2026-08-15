@@ -19,6 +19,12 @@ document.addEventListener("DOMContentLoaded", function () {
     const submittedDataModelFields = document.getElementById(
         "submitted-data-model-fields",
     );
+    const predictionTargetDropdown = document.getElementById(
+        "prediction-target-dropdown",
+    );
+    const inputColumnCheckboxes = Array.from(
+        document.querySelectorAll("[data-input-column-checkbox]"),
+    );
 
     const decisionTreeParameters = document.getElementById(
         "decision-tree-parameters",
@@ -423,5 +429,32 @@ document.addEventListener("DOMContentLoaded", function () {
     if (trainingPercentageInput && testingPercentageText) {
         trainingPercentageInput.addEventListener("input", updateTestingPercentage);
         updateTestingPercentage();
+    }
+
+    // Comparison - Prediction Target and Input Columns
+
+    function excludePredictionTargetFromInputColumns() {
+        if (!predictionTargetDropdown) {
+            return;
+        }
+
+        inputColumnCheckboxes.forEach(function (checkbox) {
+            const isPredictionTarget = (
+                checkbox.value === predictionTargetDropdown.value
+            );
+
+            if (isPredictionTarget) {
+                checkbox.checked = false;
+            }
+            checkbox.disabled = isPredictionTarget;
+        });
+    }
+
+    if (predictionTargetDropdown) {
+        predictionTargetDropdown.addEventListener(
+            "change",
+            excludePredictionTargetFromInputColumns,
+        );
+        excludePredictionTargetFromInputColumns();
     }
 });

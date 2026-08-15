@@ -155,23 +155,21 @@
                     </div>
                 </section>
 
-                <!-- Comparison - Upload Dataset and Render Results -->
+                <!-- Comparison - Upload and Inspect Dataset -->
                 <section class="content-card">
                     <h2>Upload Dataset</h2>
 
                     <!-- enctype allows the browser to send a file to Flask. -->
                     <form
-                        id="upload-form"
+                        id="dataset-inspection-form"
                         method="post"
                         enctype="multipart/form-data"
                     >
                         <input
-                            id="submitted-training-percentage"
-                            name="training_percentage"
+                            name="form_action"
                             type="hidden"
-                            value="{{ selected_training_percentage }}"
+                            value="inspect_dataset"
                         >
-                        <div id="submitted-data-model-fields"></div>
 
                         <label for="dataset-file-input">
                             Choose a CSV or XLSX dataset:
@@ -185,13 +183,13 @@
                         >
 
                         <button type="submit">
-                            Render Dataset
+                            Inspect Dataset
                         </button>
                     </form>
 
                     <p>
-                        Only CSV and XLSX files are accepted. The final column
-                        is automatically used as the prediction target.
+                        Only CSV and XLSX files are accepted. Inspection does
+                        not train a model yet.
                     </p>
                 </section>
 
@@ -203,16 +201,126 @@
                 {% endif %}
 
                 {% if uploaded_dataset %}
-                    <section class="content-card">
-                        <h2>Dataset Preview</h2>
+                    <!-- Comparison - Dataset Investigation -->
+                    <section class="content-card dataset-investigation-section">
+                        <div class="dataset-investigation-heading">
+                            <div>
+                                <p class="section-label">Dataset Investigation</p>
+                                <h2>{{ uploaded_dataset["filename"] }}</h2>
+                            </div>
+                            <p>Review the dataset before running any model.</p>
+                        </div>
 
-                        <p>
-                            Filename: {{ uploaded_dataset["filename"] }}<br>
-                            Rows: {{ uploaded_dataset["rows"] }}<br>
-                            Columns: {{ uploaded_dataset["columns"] }}
-                        </p>
+                        <div class="dataset-statistics">
+                            <div><span>Rows</span><strong>{{ uploaded_dataset["rows"] }}</strong></div>
+                            <div><span>Columns</span><strong>{{ uploaded_dataset["columns"] }}</strong></div>
+                            <div><span>Missing cells</span><strong>{{ uploaded_dataset["missing_cells"] }} ({{ uploaded_dataset["missing_percentage"] }}%)</strong></div>
+                            <div><span>Duplicate rows</span><strong>{{ uploaded_dataset["duplicate_rows"] }}</strong></div>
+                        </div>
 
-                        <div class="table-container">
+                        <form id="modelling-form" method="post">
+                            <input name="form_action" type="hidden" value="render_models">
+                            <input name="stored_filename" type="hidden" value="{{ uploaded_dataset['stored_filename'] }}">
+                            <input name="original_filename" type="hidden" value="{{ uploaded_dataset['filename'] }}">
+                            <input
+                                id="submitted-training-percentage"
+                                name="training_percentage"
+                                type="hidden"
+                                value="{{ selected_training_percentage }}"
+                            >
+                            <div id="submitted-data-model-fields"></div>
+
+                            <div class="dataset-configuration-grid">
+                                <div>
+                                    <label for="prediction-target-dropdown">
+                                        Prediction target:
+                                    </label>
+                                    <select
+                                        id="prediction-target-dropdown"
+                                        name="prediction_target"
+                                    >
+                                        {% for column_name in uploaded_dataset["column_names"] %}
+                                            <option
+                                                value="{{ column_name }}"
+                                                {% if column_name == selected_target %}selected{% endif %}
+                                            >{{ column_name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+
+                                <div class="detected-task-description">
+                                    <span>Detected task</span>
+                                    <strong>{{ uploaded_dataset["task"] | replace("_", " ") | title }}</strong>
+                                </div>
+                            </div>
+
+                            <div class="target-selection-explanation">
+                                <strong>{{ selected_target }}</strong><br>
+                                {{ uploaded_dataset["target_reason"] }}
+                                {{ uploaded_dataset["task_reason"] }}
+                            </div>
+
+                            <fieldset class="input-column-selection">
+                                <legend>Input columns:</legend>
+                                <p>
+                                    Untick identifiers, notes, or other columns
+                                    that should not be used for modelling.
+                                </p>
+
+                                <div class="input-column-checkboxes">
+                                    {% for column_name in uploaded_dataset["column_names"] %}
+                                        <label>
+                                            <input
+                                                data-input-column-checkbox
+                                                name="selected_input_columns"
+                                                type="checkbox"
+                                                value="{{ column_name }}"
+                                                {% if column_name in selected_input_columns %}checked{% endif %}
+                                                {% if column_name == selected_target %}disabled{% endif %}
+                                            >
+                                            <span>{{ column_name }}</span>
+                                        </label>
+                                    {% endfor %}
+                                </div>
+                            </fieldset>
+
+                            <button type="submit">
+                                Render Dataset
+                            </button>
+                        </form>
+
+                        <details class="dataset-details">
+                            <summary>View Column Statistics and Data Preview</summary>
+
+                            <h3>Column Statistics</h3>
+                            <div class="table-container">
+                                <table class="result-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Column</th>
+                                            <th>Type</th>
+                                            <th>Missing</th>
+                                            <th>Unique</th>
+                                            <th>Mean / Common Value</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for column in uploaded_dataset["column_summaries"] %}
+                                            <tr>
+                                                <th>{{ column["name"] }}</th>
+                                                <td>{{ column["data_type"] }}</td>
+                                                <td>{{ column["missing_values"] }} ({{ column["missing_percentage"] }}%)</td>
+                                                <td>{{ column["unique_values"] }}</td>
+                                                <td>{{ column["mean_or_common_value"] if column["mean_or_common_value"] is not none else "—" }}</td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <h3>First Five Rows</h3>
+
+                            <div class="table-container">
                             <table class="result-table preview-table">
                                 <thead>
                                     <tr>
@@ -231,7 +339,8 @@
                                     {% endfor %}
                                 </tbody>
                             </table>
-                        </div>
+                            </div>
+                        </details>
                     </section>
 
                 {% endif %}
@@ -553,12 +662,12 @@
                         value="{{ selected_target }}"
                         readonly
                     >
-                    <small>The final dataset column was selected automatically.</small>
+                    <small>This target is used by supervised models.</small>
                 </div>
             {% else %}
                 <p>
-                    The final dataset column will automatically become the
-                    prediction target.
+                    Inspect a dataset, then choose its prediction target and
+                    input columns.
                 </p>
             {% endif %}
 
@@ -568,7 +677,7 @@
                 <div class="parameter-field">
                     <!-- Parameters - Decision Tree - Split Quality Criterion -->
                     <label for="decision-tree-split-quality-criterion-dropdown">Criterion:</label>
-                    <select id="decision-tree-split-quality-criterion-dropdown" name="decision_tree_split_quality_criterion" form="upload-form">
+                    <select id="decision-tree-split-quality-criterion-dropdown" name="decision_tree_split_quality_criterion" form="modelling-form">
                         {% for value, label in [
                             ("auto", "Auto"),
                             ("gini", "Gini"),
@@ -591,7 +700,7 @@
                 <div class="parameter-field">
                     <!-- Parameters - Decision Tree - Split Selection Method -->
                     <label for="decision-tree-split-selection-method-dropdown">Splitter:</label>
-                    <select id="decision-tree-split-selection-method-dropdown" name="decision_tree_split_selection_method" form="upload-form">
+                    <select id="decision-tree-split-selection-method-dropdown" name="decision_tree_split_selection_method" form="modelling-form">
                         <option value="best" {% if decision_tree_parameters["split_selection_method"] == "best" %}selected{% endif %}>Best</option>
                         <option value="random" {% if decision_tree_parameters["split_selection_method"] == "random" %}selected{% endif %}>Random</option>
                     </select>
@@ -600,25 +709,25 @@
                 <div class="parameter-field">
                     <!-- Parameters - Decision Tree - Maximum Tree Depth -->
                     <label for="decision-tree-maximum-depth-number">Maximum depth:</label>
-                    <input id="decision-tree-maximum-depth-number" name="decision_tree_maximum_depth" type="number" min="1" value="{{ decision_tree_parameters['maximum_depth'] }}" form="upload-form" required>
+                    <input id="decision-tree-maximum-depth-number" name="decision_tree_maximum_depth" type="number" min="1" value="{{ decision_tree_parameters['maximum_depth'] }}" form="modelling-form" required>
                 </div>
 
                 <div class="parameter-field">
                     <!-- Parameters - Decision Tree - Minimum Samples to Split -->
                     <label for="decision-tree-minimum-samples-to-split-number">Minimum samples to split:</label>
-                    <input id="decision-tree-minimum-samples-to-split-number" name="decision_tree_minimum_samples_to_split" type="number" min="2" value="{{ decision_tree_parameters['minimum_samples_to_split'] }}" form="upload-form" required>
+                    <input id="decision-tree-minimum-samples-to-split-number" name="decision_tree_minimum_samples_to_split" type="number" min="2" value="{{ decision_tree_parameters['minimum_samples_to_split'] }}" form="modelling-form" required>
                 </div>
 
                 <div class="parameter-field">
                     <!-- Parameters - Decision Tree - Minimum Samples per Leaf -->
                     <label for="decision-tree-minimum-samples-per-leaf-number">Minimum samples per leaf:</label>
-                    <input id="decision-tree-minimum-samples-per-leaf-number" name="decision_tree_minimum_samples_per_leaf" type="number" min="1" value="{{ decision_tree_parameters['minimum_samples_per_leaf'] }}" form="upload-form" required>
+                    <input id="decision-tree-minimum-samples-per-leaf-number" name="decision_tree_minimum_samples_per_leaf" type="number" min="1" value="{{ decision_tree_parameters['minimum_samples_per_leaf'] }}" form="modelling-form" required>
                 </div>
 
                 <div class="parameter-field">
                     <!-- Parameters - Decision Tree - Maximum Features per Split -->
                     <label for="decision-tree-maximum-features-per-split-dropdown">Maximum features:</label>
-                    <select id="decision-tree-maximum-features-per-split-dropdown" name="decision_tree_maximum_features_per_split" form="upload-form">
+                    <select id="decision-tree-maximum-features-per-split-dropdown" name="decision_tree_maximum_features_per_split" form="modelling-form">
                         {% for value, label in [
                             ("auto", "Auto"),
                             ("sqrt", "Square Root"),
@@ -648,7 +757,7 @@
                         {% if uploaded_dataset %}max="{{ uploaded_dataset['rows'] - 1 }}"{% endif %}
                         step="1"
                         value="{{ selected_number_of_clusters }}"
-                        form="upload-form"
+                        form="modelling-form"
                         required
                     >
                 </div>
@@ -656,7 +765,7 @@
                 <div class="parameter-field">
                     <!-- Parameters - K-Means - Initialization Method -->
                     <label for="kmeans-initialization-method-dropdown">Initialization:</label>
-                    <select id="kmeans-initialization-method-dropdown" name="kmeans_initialization_method" form="upload-form">
+                    <select id="kmeans-initialization-method-dropdown" name="kmeans_initialization_method" form="modelling-form">
                         <option value="k-means++" {% if kmeans_parameters["initialization_method"] == "k-means++" %}selected{% endif %}>K-Means++</option>
                         <option value="random" {% if kmeans_parameters["initialization_method"] == "random" %}selected{% endif %}>Random</option>
                     </select>
@@ -665,19 +774,19 @@
                 <div class="parameter-field">
                     <!-- Parameters - K-Means - Restart Count -->
                     <label for="kmeans-restart-count-number">Restart count:</label>
-                    <input id="kmeans-restart-count-number" name="kmeans_restart_count" type="number" min="1" value="{{ kmeans_parameters['restart_count'] }}" form="upload-form" required>
+                    <input id="kmeans-restart-count-number" name="kmeans_restart_count" type="number" min="1" value="{{ kmeans_parameters['restart_count'] }}" form="modelling-form" required>
                 </div>
 
                 <div class="parameter-field">
                     <!-- Parameters - K-Means - Maximum Iterations -->
                     <label for="kmeans-maximum-iterations-number">Maximum iterations:</label>
-                    <input id="kmeans-maximum-iterations-number" name="kmeans_maximum_iterations" type="number" min="1" value="{{ kmeans_parameters['maximum_iterations'] }}" form="upload-form" required>
+                    <input id="kmeans-maximum-iterations-number" name="kmeans_maximum_iterations" type="number" min="1" value="{{ kmeans_parameters['maximum_iterations'] }}" form="modelling-form" required>
                 </div>
 
                 <div class="parameter-field">
                     <!-- Parameters - K-Means - Convergence Tolerance -->
                     <label for="kmeans-convergence-tolerance-number">Tolerance:</label>
-                    <input id="kmeans-convergence-tolerance-number" name="kmeans_convergence_tolerance" type="number" min="0.000001" step="0.000001" value="{{ kmeans_parameters['convergence_tolerance'] }}" form="upload-form" required>
+                    <input id="kmeans-convergence-tolerance-number" name="kmeans_convergence_tolerance" type="number" min="0.000001" step="0.000001" value="{{ kmeans_parameters['convergence_tolerance'] }}" form="modelling-form" required>
                 </div>
 
                 <small>

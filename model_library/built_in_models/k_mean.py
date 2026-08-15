@@ -23,6 +23,7 @@ def k_means(
     number_of_clusters: int = 3,
     parameters: dict[str, Any] | None = None,
     seed: int = 42,
+    selected_input_columns: list[str] | tuple[str, ...] | None = None,
 ) -> dict[str, Any]:
     from sklearn.cluster import KMeans
     from sklearn.metrics import (
@@ -30,12 +31,37 @@ def k_means(
         silhouette_score,
     )
 
-    # K-Means does not use the prediction target or identifier for training
-    feature_columns = [
-        column
-        for column in frame.columns
-        if column not in {target_column, "Id"}
-    ]
+    # K-Means does not use the prediction target for training. Use the
+    # selected inputs, or default to non-identifier columns when none exist.
+    if selected_input_columns is None:
+        feature_columns = [
+            column
+            for column in frame.columns
+            if (
+                column != target_column
+                and column.lower() not in {"id", "index"}
+            )
+        ]
+    else:
+        feature_columns = list(
+            dict.fromkeys(selected_input_columns)
+        )
+
+        unavailable_columns = [
+            column
+            for column in feature_columns
+            if column not in frame.columns
+        ]
+        if unavailable_columns:
+            raise UserError(
+                "One or more selected input columns are unavailable."
+            )
+
+        feature_columns = [
+            column
+            for column in feature_columns
+            if column != target_column
+        ]
 
     if not feature_columns:
         raise UserError(
