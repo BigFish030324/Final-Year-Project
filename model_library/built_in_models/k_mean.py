@@ -177,6 +177,15 @@ def k_means(
         .to_dict()
     )
 
+    cluster_count_labels = [
+        f"Cluster {cluster_number}"
+        for cluster_number in cluster_counts
+    ]
+    cluster_count_values = [
+        int(count)
+        for count in cluster_counts.values()
+    ]
+
     # Return a standard result dictionary for Flask and terminal output
     return {
         "model": "K-Means",
@@ -191,6 +200,11 @@ def k_means(
             f"Cluster {cluster_number}": int(count)
             for cluster_number, count
             in cluster_counts.items()
+        },
+        "chart": {
+            "type": "cluster_sizes",
+            "labels": cluster_count_labels,
+            "values": cluster_count_values,
         },
         "note": (
             "K-Means discovers groups. Its metrics should not be directly "

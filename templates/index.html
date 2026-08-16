@@ -30,6 +30,10 @@
         src="{{ url_for('static', filename='js/model_settings.js') }}"
         defer
     ></script>
+    <script
+        src="{{ url_for('static', filename='js/result_charts.js') }}"
+        defer
+    ></script>
 </head>
 
 <body>
@@ -419,6 +423,17 @@
                                         {% endfor %}
                                     </div>
 
+                                    <!-- Decision Tree - Metric Chart -->
+                                    <div class="data-model-result-chart">
+                                        <h4>Metric Chart</h4>
+                                        <canvas
+                                            id="decision-tree-metric-chart"
+                                            class="data-model-result-chart-canvas"
+                                            aria-label="Decision Tree metric chart"
+                                            role="img"
+                                        ></canvas>
+                                    </div>
+
                                     {% if result["decision_tree"]["task"] == "classification" %}
                                         {% set labels = result["decision_tree"]["details"]["labels"] %}
                                         {% set matrix = result["decision_tree"]["details"]["confusion_matrix"] %}
@@ -441,6 +456,17 @@
                                                 </tbody>
                                             </table>
                                         </div>
+
+                                        <!-- Decision Tree - Confusion Matrix Chart -->
+                                        <div class="data-model-result-chart">
+                                            <h4>Confusion Matrix Heatmap</h4>
+                                            <canvas
+                                                id="decision-tree-confusion-matrix-chart"
+                                                class="data-model-result-chart-canvas"
+                                                aria-label="Decision Tree confusion matrix heatmap"
+                                                role="img"
+                                            ></canvas>
+                                        </div>
                                     {% else %}
                                         <h4>Example Predictions</h4>
                                         <div class="table-container">
@@ -456,7 +482,22 @@
                                                 </tbody>
                                             </table>
                                         </div>
+
+                                        <!-- Decision Tree - Actual and Predicted Chart -->
+                                        <div class="data-model-result-chart">
+                                            <h4>Actual and Predicted Values</h4>
+                                            <canvas
+                                                id="decision-tree-regression-prediction-chart"
+                                                class="data-model-result-chart-canvas"
+                                                aria-label="Decision Tree actual and predicted value chart"
+                                                role="img"
+                                            ></canvas>
+                                        </div>
                                     {% endif %}
+
+                                    <script id="decision-tree-chart-data" type="application/json">
+                                        {{ result["decision_tree"] | tojson }}
+                                    </script>
                                 {% else %}
                                     <p class="comparison-data-model-status ready-data-model-status">Ready</p>
                                     <p>Upload a dataset and click Render Dataset to generate Decision Tree results.</p>
@@ -500,6 +541,17 @@
                                         {% endfor %}
                                     </div>
 
+                                    <!-- K-Means - Metric Chart -->
+                                    <div class="data-model-result-chart">
+                                        <h4>Metric Chart</h4>
+                                        <canvas
+                                            id="kmeans-metric-chart"
+                                            class="data-model-result-chart-canvas"
+                                            aria-label="K-Means metric chart"
+                                            role="img"
+                                        ></canvas>
+                                    </div>
+
                                     <h4>Cluster Sizes</h4>
                                     <div class="cluster-chart">
                                         {% for cluster_name, row_count
@@ -514,6 +566,19 @@
                                             </div>
                                         {% endfor %}
                                     </div>
+                                    <!-- K-Means - Cluster Size Chart -->
+                                    <div class="data-model-result-chart">
+                                        <h4>Cluster Size Chart</h4>
+                                        <canvas
+                                            id="kmeans-cluster-size-chart"
+                                            class="data-model-result-chart-canvas"
+                                            aria-label="K-Means cluster size chart"
+                                            role="img"
+                                        ></canvas>
+                                    </div>
+                                    <script id="kmeans-chart-data" type="application/json">
+                                        {{ result["kmeans"] | tojson }}
+                                    </script>
                                     <p>{{ result["kmeans"]["note"] }}</p>
                                 {% else %}
                                     <p class="comparison-data-model-status ready-data-model-status">Ready</p>

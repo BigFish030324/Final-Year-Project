@@ -291,6 +291,12 @@ def decision_tree(
             ).tolist(),
         }
 
+        chart = {
+            "type": "confusion_matrix",
+            "labels": result_details["labels"],
+            "matrix": result_details["confusion_matrix"],
+        }
+
     # Calculate regression metrics
     else:
         mean_squared = mean_squared_error(
@@ -338,6 +344,12 @@ def decision_tree(
             ],
         }
 
+        chart = {
+            "type": "actual_and_predicted",
+            "actual": result_details["actual"],
+            "predicted": result_details["predicted"],
+        }
+
     # Return a standard result dictionary for Flask and terminal output
     return {
         "model": "Decision Tree",
@@ -351,4 +363,5 @@ def decision_tree(
         "test_rows": len(features_test),
         "metrics": metrics,
         "details": result_details,
+        "chart": chart,
     }

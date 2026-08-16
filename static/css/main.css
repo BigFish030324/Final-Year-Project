@@ -1012,6 +1012,25 @@ button:focus-visible {
     min-width: 2px;
 }
 
+/* Data Model Results - Charts */
+.data-model-result-chart {
+    background-color: #ffffff;
+    border: 1px solid #d6dee8;
+    border-radius: 10px;
+    margin: 20px 0;
+    padding: 14px;
+}
+
+.data-model-result-chart h4 {
+    margin: 0 0 12px;
+}
+
+.data-model-result-chart-canvas {
+    display: block;
+    max-width: 100%;
+    width: 100%;
+}
+
 /* Move parameters below the comparison workspace on medium screens. */
 @media (max-width: 1050px) {
     .application-layout {
