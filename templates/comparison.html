@@ -24,26 +24,41 @@ Upload a dataset, choose models and review their results in the main workspace.
             </div>
             <section class="split-panel card" aria-labelledby="split-title">
                 <div class="split-editor">
-                    <label class="percentage-field"><span>Training Data</span><span class="percentage-input"><input type="number" id="train-percent-input" min="10" max="90" value="70" inputmode="numeric"><strong>%</strong></span></label>
+                    <label class="percentage-field"><span>Training Data</span><span class="percentage-input"><input type="number" id="train-percent-input" min="0" max="100" value="70" inputmode="numeric"><strong>%</strong></span></label>
                     <div class="split-track-wrap">
                         <div class="split-visual" aria-hidden="true"><span id="train-bar" style="width:70%">Train 70%</span><span id="test-bar" style="width:30%">Test 30%</span><span class="split-divider" id="split-divider">|</span></div>
-                        <input type="range" id="train-pct" min="10" max="90" value="70" aria-label="Training data percentage">
+                        <input type="range" id="train-pct" min="0" max="100" value="70" aria-label="Training data percentage">
                     </div>
-                    <label class="percentage-field"><span>Testing Data</span><span class="percentage-input"><input type="number" id="test-percent-input" min="10" max="90" value="30" inputmode="numeric"><strong>%</strong></span></label>
+                    <label class="percentage-field"><span>Testing Data</span><span class="percentage-input"><input type="number" id="test-percent-input" min="0" max="100" value="30" inputmode="numeric"><strong>%</strong></span></label>
                 </div>
+                <p class="split-warning hidden" id="split-warning" role="status"></p>
             </section>
 
             <section class="dataset-stage">
                 <div class="section-heading">
                     <div><span class="step-number">2</span><div><h2>Upload and Investigate a Dataset <button class="info-button" data-tooltip="CSV and XLSX files are inspected before modelling. JSON is intentionally not accepted.">i</button></h2><p>The target is suggested automatically, but you remain in control.</p></div></div>
                 </div>
-                <label class="upload-zone" id="comparison-upload-zone">
-                    <input type="file" id="dataset-upload" accept=".csv,.xlsx" hidden>
-                    <span class="upload-icon">⇧</span>
-                    <strong>Drop a CSV or XLSX File Here</strong>
-                    <span>or click to browse · maximum 1,000 MB</span>
-                    <div class="upload-progress hidden" id="upload-progress"><span></span></div>
-                </label>
+                <div class="dataset-input-options" id="dataset-input-options">
+                    <label class="upload-zone" id="comparison-upload-zone">
+                        <input type="file" id="dataset-upload" accept=".csv,.xlsx" hidden>
+                        <span class="upload-icon">⇧</span>
+                        <strong>Drop a CSV or XLSX File Here</strong>
+                        <span>or click to browse · maximum 1,000 MB</span>
+                        <div class="upload-progress hidden" id="upload-progress"><span></span></div>
+                    </label>
+                    <div class="dataset-input-divider"><span>OR</span></div>
+                    <div class="kaggle-dataset-input card">
+                        <div>
+                            <strong>Import a Public Kaggle Dataset</strong>
+                            <span>Paste a link such as kaggle.com/datasets/owner/dataset-name. The largest usable CSV or XLSX file will be investigated.</span>
+                        </div>
+                        <div class="kaggle-dataset-controls">
+                            <input type="url" id="kaggle-dataset-url" placeholder="https://www.kaggle.com/datasets/owner/dataset-name" autocomplete="url" aria-label="Kaggle dataset URL">
+                            <button class="button secondary" id="import-kaggle-dataset" type="button">Import from Kaggle</button>
+                        </div>
+                        <p class="kaggle-dataset-status hidden" id="kaggle-dataset-status" role="status"></p>
+                    </div>
+                </div>
 
                 <article class="dataset-card hidden" id="dataset-card">
                     <div class="dataset-card-head">
@@ -109,16 +124,15 @@ Upload a dataset, choose models and review their results in the main workspace.
         </aside>
     </div>
 
-    <section class="model-dock" id="model-dock">
+    <section class="model-dock collapsed" id="model-dock">
         <div class="dock-toolbar">
             <div><h2>Model Shelf</h2><p>Drag a card into either comparison slot.</p></div>
             <div class="dock-actions">
                 <div class="dock-filters"><select id="model-category"><option value="all">All Models</option><option value="recent">Recent Models</option><option value="library">Pre-Defined Library</option><option value="custom">Self-Made Models</option></select><input id="model-search" type="search" placeholder="Search models"></div>
-                <button class="panel-icon-toggle dock-toggle" id="dock-toggle" type="button" aria-expanded="true" aria-controls="model-list" aria-label="Minimize model shelf" title="Minimize model shelf"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="icon-collapse" d="m5 9 7 7 7-7"/><path class="icon-expand" d="m5 15 7-7 7 7"/></svg></button>
+                <button class="panel-icon-toggle dock-toggle" id="dock-toggle" type="button" aria-expanded="false" aria-controls="model-list" aria-label="Expand model shelf" title="Expand model shelf"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="icon-collapse" d="m5 9 7 7 7-7"/><path class="icon-expand" d="m5 15 7-7 7 7"/></svg></button>
             </div>
         </div>
         <div class="model-carousel" id="model-list"><div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div></div>
     </section>
 </div>
 {% endblock %}
-

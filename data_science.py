@@ -880,8 +880,8 @@ def compare_models(
     comparison_started = time.perf_counter()
     if not 1 <= len(model_requests) <= 2:
         raise UserFacingError("Choose one or two models for comparison.")
-    if not 10 <= int(train_pct) <= 90:
-        raise UserFacingError("Training split must be between 10% and 90%.")
+    if not 1 <= int(train_pct) <= 99:
+        raise UserFacingError("Modelling needs at least 1% training data and 1% testing data.")
     mode = normalise_processing_mode(mode)
     progress = progress or (lambda percent, message: None)
     progress(8, "Reading the active dataset")

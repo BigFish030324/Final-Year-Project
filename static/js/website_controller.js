@@ -180,7 +180,7 @@
     async function initComparison() {
         await loadSession();
         const train = $("#train-pct");
-        train.value = Number(state.settings.train_pct || 70);
+        train.value = Math.min(100, Math.max(0, Number(state.settings.train_pct ?? 70)));
         updateSplit();
         train.addEventListener("input", () => setTrainPercentage(train.value));
         $("#train-percent-input").addEventListener("input", event => queueTypedSplit("train", event.target.value));
@@ -191,7 +191,11 @@
 
         bindUploadZone();
         bindSlots();
-        $("#replace-dataset").addEventListener("click", () => $("#dataset-upload").click());
+        $("#replace-dataset").addEventListener("click", showDatasetInputOptions);
+        $("#import-kaggle-dataset").addEventListener("click", importKaggleDataset);
+        $("#kaggle-dataset-url").addEventListener("keydown", event => {
+            if (event.key === "Enter") { event.preventDefault(); importKaggleDataset(); }
+        });
         $("#column-picker-button").addEventListener("click", showColumnPicker);
         $("#target-select").addEventListener("change", updateDatasetChoices);
         $("#date-select").addEventListener("change", updateDatasetChoices);
@@ -237,27 +241,43 @@
         $("#train-bar").textContent = value >= 24 ? `Train ${value}%` : "";
         $("#test-bar").textContent = 100 - value >= 24 ? `Test ${100 - value}%` : "";
         $("#split-divider").style.left = `${value}%`;
+        const warning = $("#split-warning");
+        const endpoint = value === 0 || value === 100;
+        const extreme = value < 10 || value > 90;
+        warning.classList.toggle("hidden", !extreme);
+        warning.textContent = endpoint
+            ? "This split is allowed for checking the percentage control, but modelling needs at least 1% training data and 1% testing data."
+            : extreme
+                ? "A very small training or testing portion can produce unreliable results, and some models may fail when too few rows or classes are available."
+                : "";
     }
 
-    function setTrainPercentage(rawValue) {
+    function setTrainPercentage(rawValue, runComparison = true) {
         if (rawValue === "" || Number.isNaN(Number(rawValue))) return;
-        const value = Math.min(90, Math.max(10, Math.round(Number(rawValue))));
+        const value = Math.min(100, Math.max(0, Math.round(Number(rawValue))));
         $("#train-pct").value = value;
         updateSplit();
-        maybeRunComparison();
+        if (runComparison) maybeRunComparison();
     }
 
     function queueTypedSplit(source, rawValue) {
         clearTimeout(splitInputTimer);
-        splitInputTimer = setTimeout(() => commitTypedSplit(source, rawValue), 2000);
+        const text = String(rawValue).trim();
+        if (/^\d+$/.test(text) && Number(text) >= 0 && Number(text) <= 100) {
+            const entered = Number(text);
+            setTrainPercentage(source === "test" ? 100 - entered : entered, false);
+            splitInputTimer = setTimeout(maybeRunComparison, 650);
+            return;
+        }
+        splitInputTimer = setTimeout(() => commitTypedSplit(source, rawValue), 800);
     }
 
     function commitTypedSplit(source, rawValue) {
         clearTimeout(splitInputTimer);
         const text = String(rawValue).trim();
-        if (!/^\d+$/.test(text) || Number(text) < 10 || Number(text) > 90) {
+        if (!/^\d+$/.test(text) || Number(text) < 0 || Number(text) > 100) {
             updateSplit();
-            toast("Enter a whole number from 10 to 90.", "warning");
+            toast("Enter a whole number from 0 to 100.", "warning");
             return;
         }
         const entered = Number(text);
@@ -299,6 +319,23 @@
         zone.addEventListener("drop", event => handleComparisonUpload(event.dataTransfer.files[0]));
     }
 
+    function showDatasetInputOptions() {
+        $("#dataset-card").classList.add("hidden");
+        $("#dataset-input-options").classList.remove("hidden");
+        $("#dataset-upload").value = "";
+        $("#kaggle-dataset-url").focus();
+    }
+
+    async function useInvestigatedDataset(response, progressMessage, successMessage) {
+        state.dataset = response.dataset;
+        logProgress(progressMessage);
+        renderDataset(state.dataset);
+        await loadModels();
+        updateSlots();
+        toast(successMessage);
+        maybeRunComparison();
+    }
+
     async function handleComparisonUpload(file) {
         if (!file) return;
         const progress = $("#upload-progress");
@@ -308,13 +345,11 @@
             const response = await uploadFile(file, { onProgress: percent => {
                 $("#dataset-status").textContent = `Uploading ${percent}%`;
             }});
-            state.dataset = response.dataset;
-            logProgress(`Upload complete. Profiled ${state.dataset.profiled_rows.toLocaleString()} row(s).`);
-            renderDataset(state.dataset);
-            await loadModels();
-            updateSlots();
-            toast("Dataset uploaded and investigated.");
-            maybeRunComparison();
+            await useInvestigatedDataset(
+                response,
+                `Upload complete. Profiled ${response.dataset.profiled_rows.toLocaleString()} row(s).`,
+                "Dataset uploaded and investigated.",
+            );
         } catch (error) {
             logProgress(`Upload stopped: ${error.message}`);
             toast(error.message, "error");
@@ -323,8 +358,37 @@
         }
     }
 
+    async function importKaggleDataset() {
+        const input = $("#kaggle-dataset-url");
+        const button = $("#import-kaggle-dataset");
+        const status = $("#kaggle-dataset-status");
+        const datasetUrl = input.value.trim();
+        if (!datasetUrl) { toast("Paste a Kaggle dataset URL first.", "warning"); input.focus(); return; }
+        button.disabled = true;
+        button.textContent = "Importing…";
+        status.className = "kaggle-dataset-status";
+        status.textContent = "Downloading the public dataset from Kaggle and checking its CSV or XLSX files…";
+        logProgress("Importing a public Kaggle dataset. Larger datasets may take longer to download.");
+        try {
+            const response = await api("/api/datasets/kaggle", { method: "POST", body: { url: datasetUrl } });
+            await useInvestigatedDataset(
+                response,
+                `Kaggle import complete. Selected ${response.dataset.filename} and profiled ${response.dataset.profiled_rows.toLocaleString()} row(s).`,
+                "Kaggle dataset imported and investigated.",
+            );
+        } catch (error) {
+            status.className = "kaggle-dataset-status error-text";
+            status.textContent = error.message;
+            logProgress(`Kaggle import stopped: ${error.message}`);
+            toast(error.message, "error", 7000);
+        } finally {
+            button.disabled = false;
+            button.textContent = "Import from Kaggle";
+        }
+    }
+
     function renderDataset(dataset) {
-        $("#comparison-upload-zone").classList.add("hidden");
+        $("#dataset-input-options").classList.add("hidden");
         $("#dataset-card").classList.remove("hidden");
         $("#dataset-name").textContent = dataset.filename;
         $("#dataset-status").textContent = `${dataset.task === "unknown" ? "Target needs attention" : titleCase(dataset.task)} · ${dataset.profile_seconds}s profiling`;
@@ -587,6 +651,11 @@
     function maybeRunComparison(showGuidedBudgetChoice = false) {
         clearTimeout(runDebounce);
         if (!state.dataset || !selectedModels().length) { updateComparisonNotice(); return; }
+        const trainPercentage = Number($("#train-pct").value);
+        if (trainPercentage === 0 || trainPercentage === 100) {
+            updateComparisonNotice("Choose at least 1% training data and 1% testing data before running models.");
+            return;
+        }
         if (selectedModels().some(model => model.compatible === false)) { updateComparisonNotice("Replace incompatible models before running."); return; }
         const hasTimeSeries = selectedModels().some(model => model.id === "arima" || model.tasks.includes("time_series"));
         const tasks = selectedModels().map(model => model.id === "kmeans" || model.tasks.includes("clustering") ? "clustering" : (model.id === "arima" || model.tasks.includes("time_series") || (hasTimeSeries && state.dataset.task === "regression" && model.tasks.includes("regression"))) ? "time_series" : state.dataset.task);
