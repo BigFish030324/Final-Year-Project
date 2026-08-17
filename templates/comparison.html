@@ -1,0 +1,124 @@
+<!-- --------------------
+Model Comparison Page
+Upload a dataset, choose models and review their results in the main workspace.
+-------------------- -->
+{% extends "base.html" %}
+{% block title %}Model Comparison · DataComparison{% endblock %}
+{% block content %}
+<div class="workspace comparison-workspace">
+    <header class="page-header comparison-header">
+        <div>
+            <span class="eyebrow">DATA INVESTIGATION</span>
+            <h1>Side-by-Side Model Comparison</h1>
+            <p>Start with a fair split, investigate the dataset, then compare up to two compatible models.</p>
+        </div>
+        <div class="header-actions">
+            <button class="button secondary" id="export-button" disabled data-tooltip="Exports become available after a successful comparison.">Export Result</button>
+        </div>
+    </header>
+
+    <div class="comparison-page-grid">
+        <div class="comparison-primary">
+            <div class="section-heading">
+                <div><span class="step-number">1</span><div><h2 id="split-title">Train / Test Split <button class="info-button" data-tooltip="Models learn from the training rows and are evaluated on separate testing rows. Every compared model receives the same split.">i</button></h2><p>This required step keeps every model comparison fair.</p></div></div>
+            </div>
+            <section class="split-panel card" aria-labelledby="split-title">
+                <div class="split-editor">
+                    <label class="percentage-field"><span>Training Data</span><span class="percentage-input"><input type="number" id="train-percent-input" min="10" max="90" value="70" inputmode="numeric"><strong>%</strong></span></label>
+                    <div class="split-track-wrap">
+                        <div class="split-visual" aria-hidden="true"><span id="train-bar" style="width:70%">Train 70%</span><span id="test-bar" style="width:30%">Test 30%</span><span class="split-divider" id="split-divider">|</span></div>
+                        <input type="range" id="train-pct" min="10" max="90" value="70" aria-label="Training data percentage">
+                    </div>
+                    <label class="percentage-field"><span>Testing Data</span><span class="percentage-input"><input type="number" id="test-percent-input" min="10" max="90" value="30" inputmode="numeric"><strong>%</strong></span></label>
+                </div>
+            </section>
+
+            <section class="dataset-stage">
+                <div class="section-heading">
+                    <div><span class="step-number">2</span><div><h2>Upload and Investigate a Dataset <button class="info-button" data-tooltip="CSV and XLSX files are inspected before modelling. JSON is intentionally not accepted.">i</button></h2><p>The target is suggested automatically, but you remain in control.</p></div></div>
+                </div>
+                <label class="upload-zone" id="comparison-upload-zone">
+                    <input type="file" id="dataset-upload" accept=".csv,.xlsx" hidden>
+                    <span class="upload-icon">⇧</span>
+                    <strong>Drop a CSV or XLSX File Here</strong>
+                    <span>or click to browse · maximum 1,000 MB</span>
+                    <div class="upload-progress hidden" id="upload-progress"><span></span></div>
+                </label>
+
+                <article class="dataset-card hidden" id="dataset-card">
+                    <div class="dataset-card-head">
+                        <div><span class="status-dot success"></span><div><h3 id="dataset-name">Dataset</h3><p id="dataset-status">Ready for investigation</p></div></div>
+                        <button class="button ghost small" id="replace-dataset">Replace Dataset</button>
+                    </div>
+                    <div class="stat-grid" id="dataset-stats"></div>
+                    <div class="dataset-controls">
+                        <label><span class="label-line">Prediction Target <button type="button" class="info-button" aria-label="Explain Prediction Target" data-tooltip="The value a supervised model should learn to predict. DataComparison suggests one using transparent rules.">i</button></span><select id="target-select"></select></label>
+                        <label><span class="label-line">Date / Time Column <button type="button" class="info-button" aria-label="Explain Date / Time Column" data-tooltip="Only required by time-series models such as ARIMA.">i</button></span><select id="date-select"><option value="">Not Selected</option></select></label>
+                        <button class="button secondary" id="column-picker-button">Choose Input Columns</button>
+                    </div>
+                    <div class="suggestion-banner" id="target-explanation"></div>
+                    <details class="profile-details">
+                        <summary>View Column Statistics and Data Preview</summary>
+                        <div class="table-wrap"><table id="column-summary-table"><thead><tr><th>Column</th><th>Type</th><th>Missing</th><th>Unique</th><th>Mean / Top Value</th><th>Std. Dev.</th></tr></thead><tbody></tbody></table></div>
+                        <h4>First Rows</h4><div class="table-wrap"><table id="dataset-preview-table"></table></div>
+                    </details>
+                </article>
+            </section>
+
+            <section class="comparison-stage">
+                <div class="section-heading">
+                    <div><span class="step-number">3</span><div><h2>Choose One or Two Models <button class="info-button" data-tooltip="Drag models from the shelf below. Incompatible models remain visible so you can learn why they do not fit the current task.">i</button></h2><p>Results run automatically when a usable dataset and compatible model are ready.</p></div></div>
+                </div>
+                <article class="recommendation-panel" id="recommendation-panel">
+                    <div>
+                        <span class="eyebrow">GUIDED START</span>
+                        <h3>Not sure which models to choose?</h3>
+                        <p>Get two compatible starter models based on the detected task and target. Resource budgets change the rows processed—not the selected models.</p>
+                    </div>
+                    <button class="button primary" id="recommend-models" disabled>Recommend Models for Me</button>
+                </article>
+                <div class="recommendation-explanation hidden" id="recommendation-explanation" aria-live="polite"></div>
+                <div class="model-slots">
+                    <article class="model-slot" id="slot-a" data-slot="a"><div class="slot-empty"><span>A</span><strong>Drop Model A Here</strong><small>You can also click a model below.</small></div></article>
+                    <article class="model-slot" id="slot-b" data-slot="b"><div class="slot-empty"><span>B</span><strong>Drop Model B Here</strong><small>One model is enough to begin.</small></div></article>
+                </div>
+                <div class="comparison-notice" id="comparison-notice">Upload a dataset and add a model to generate real results.</div>
+                <section class="results-area hidden" id="results-area">
+                    <div class="result-toolbar"><div><h3>Interactive Comparison</h3><p id="result-summary"></p></div><span class="result-id" id="result-id"></span></div>
+                    <div class="suggestion-banner" id="transformation-note"></div>
+                    <section class="affordability-receipt" aria-labelledby="receipt-title">
+                        <div class="receipt-heading"><div><span class="eyebrow">TRANSPARENT COST EVIDENCE</span><h3 id="receipt-title">Affordability and Access Receipt</h3></div><span class="receipt-zero">RM0</span></div>
+                        <div class="receipt-grid" id="affordability-receipt"></div>
+                        <p id="receipt-note"></p>
+                    </section>
+                    <div class="metric-chart" id="metric-chart"></div>
+                    <div class="detail-charts" id="detail-charts"></div>
+                </section>
+            </section>
+
+            <section class="progress-console" id="progress-console">
+                <button class="console-header" id="console-toggle"><span><span class="terminal-dot"></span>Processing Progress</span><span id="console-status">Waiting</span></button>
+                <div class="console-body" id="console-body"><p><time>--:--:--</time> Ready. Upload a dataset or choose a model to begin.</p></div>
+            </section>
+        </div>
+
+        <aside class="parameters-panel card" id="parameters-panel" aria-live="polite">
+            <div class="panel-heading"><div><span class="eyebrow parameters-model-name" id="parameters-model-name">NO MODEL SELECTED</span><h2>Parameters</h2></div><button class="panel-icon-toggle" id="parameters-toggle" type="button" aria-label="Minimize parameters" title="Minimize parameters" aria-expanded="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="icon-collapse" d="M15 5 8 12l7 7"/><path class="icon-expand" d="m9 5 7 7-7 7"/></svg></button></div>
+            <div class="parameters-content"><p id="parameters-help">Choose a model card to view its default parameters.</p><div id="parameter-editor-panel" class="parameter-editor-panel"></div></div>
+            <div class="parameters-footer hidden" id="parameters-footer"><button class="button primary wide" id="apply-parameters">Run</button></div>
+        </aside>
+    </div>
+
+    <section class="model-dock" id="model-dock">
+        <div class="dock-toolbar">
+            <div><h2>Model Shelf</h2><p>Drag a card into either comparison slot.</p></div>
+            <div class="dock-actions">
+                <div class="dock-filters"><select id="model-category"><option value="all">All Models</option><option value="recent">Recent Models</option><option value="library">Pre-Defined Library</option><option value="custom">Self-Made Models</option></select><input id="model-search" type="search" placeholder="Search models"></div>
+                <button class="panel-icon-toggle dock-toggle" id="dock-toggle" type="button" aria-expanded="true" aria-controls="model-list" aria-label="Minimize model shelf" title="Minimize model shelf"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="icon-collapse" d="m5 9 7 7 7-7"/><path class="icon-expand" d="m5 15 7-7 7 7"/></svg></button>
+            </div>
+        </div>
+        <div class="model-carousel" id="model-list"><div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div></div>
+    </section>
+</div>
+{% endblock %}
+

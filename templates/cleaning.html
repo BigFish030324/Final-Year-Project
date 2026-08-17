@@ -1,0 +1,77 @@
+<!-- --------------------
+Data Cleaning Page
+Create a cleaned copy of a dataset without overwriting the original uploaded file.
+-------------------- -->
+{% extends "base.html" %}
+{% block title %}Data Cleaning · DataComparison{% endblock %}
+{% block content %}
+<div class="workspace">
+    <header class="page-header"><div><span class="eyebrow">PREPARE YOUR DATASET BETTER</span><h1>Data Cleaning Studio</h1><p>Your original upload stays unchanged. Every action creates a new dataset you can download or send to Comparison.</p></div></header>
+    <div class="cleaning-grid">
+        <aside class="cleaning-tools card">
+            <h2>Cleaning Actions</h2>
+            <p class="muted">Choose an action, configure it, then preview the outcome.</p>
+            <div class="cleaning-tools-divider"></div>
+            <button class="tool-button active" data-operation="remove_missing"><strong>Remove Missing Rows</strong></button>
+            <button class="tool-button" data-operation="fill_missing"><strong>Fill Missing Values</strong></button>
+            <button class="tool-button" data-operation="remove_duplicates"><strong>Remove Duplicate Rows</strong></button>
+            <button class="tool-button" data-operation="replace"><strong>Replace Values</strong></button>
+            <button class="tool-button" data-operation="remove_outliers"><strong>Handle Outliers</strong></button>
+            <button class="tool-button" data-operation="normalize"><strong>Normalize Numbers</strong></button>
+            <button class="tool-button" data-operation="drop_columns"><strong>Remove Columns</strong></button>
+            <button class="tool-button" data-operation="rename_columns"><strong>Rename Columns</strong></button>
+            <button class="tool-button" data-operation="convert_type"><strong>Convert Data Type</strong></button>
+            <button class="tool-button accent" data-operation="custom_cleaning"><strong>Custom Cleaning</strong></button>
+            <button class="tool-button accent" data-operation="join"><strong>Join Two Datasets</strong></button>
+        </aside>
+
+        <section class="cleaning-main">
+            <article class="card source-card">
+                <div class="section-heading compact"><div><div><h2>Original Dataset <button class="info-button" data-tooltip="Cleaning never overwrites this file. A separate cleaned copy is produced.">i</button></h2><p id="cleaning-source-copy">Select or upload a dataset.</p></div></div><div class="source-actions"><button class="button danger small" id="delete-cleaning-dataset" disabled>Delete Dataset</button><button class="button danger small" id="delete-all-cleaning-datasets" disabled>Delete All Datasets</button><button class="button secondary small" id="cleaning-upload-button">Upload Another</button></div></div>
+                <input type="file" id="cleaning-upload" accept=".csv,.xlsx" hidden>
+                <select id="cleaning-dataset-select"><option value="">Loading datasets…</option></select>
+                <div class="stat-grid compact-stats" id="cleaning-source-stats"></div>
+            </article>
+
+            <article class="card action-card">
+                <div class="section-heading compact"><div><div><h2 id="cleaning-action-title">Remove Missing Rows</h2><p id="cleaning-action-description">Choose which columns must contain a value.</p></div></div></div>
+                <form id="cleaning-form"><div id="cleaning-fields" class="form-grid"></div><button class="button primary" type="submit">Create Cleaned Dataset</button></form>
+            </article>
+
+            <article class="card join-card hidden" id="join-card">
+                <div class="section-heading compact"><div><div><h2>Join Configuration</h2><p>Compare both schemas, choose matching keys, and decide how rows should combine.</p></div></div></div>
+                <div class="join-upload-row"><select id="join-dataset-select"><option value="">Choose a Second Uploaded Dataset</option></select><label class="button secondary">Upload Second Dataset<input type="file" id="join-upload" accept=".csv,.xlsx" hidden></label></div>
+                <div class="schema-pair"><div><h3>Original Attributes</h3><div id="left-schema" class="schema-list"></div></div><div><h3>Second Dataset Attributes</h3><div id="right-schema" class="schema-list"></div></div></div>
+                <div class="form-grid four"><label>Original Join Key<select id="left-join-key"></select></label><label>Second Join Key<select id="right-join-key"></select></label><label>Join Type<select id="join-type"><option value="inner">Inner — Matching Rows Only</option><option value="left">Left — All Original Rows</option><option value="right">Right — All Second Rows</option><option value="outer">Outer — Every Row</option></select></label><label>Duplicate Suffix<input id="right-suffix" value="_right"></label></div>
+                <div id="duplicate-restore" class="duplicate-restore hidden"><h3>Duplicate Columns Hidden</h3><p>DataComparison removed these repeated columns because their names and values matched. Tick any column to bring it back in the next joined copy.</p><div id="duplicate-options"></div></div>
+                <button class="button primary" id="join-run">Create Joined Dataset</button>
+            </article>
+
+            <article class="card custom-cleaning-card hidden" id="custom-cleaning-card">
+                <div class="section-heading compact"><div><div><h2>Custom Cleaning</h2><p>Create trusted Python cleaning actions for this local account. Saved actions remain here and do not appear in the main Cleaning Actions list.</p></div></div></div>
+                <div class="security-note"><strong>Local Python rules:</strong> define <code>clean_data(df)</code> and return a Pandas DataFrame. File, network, operating-system, and dynamic-code access are blocked. Run only code you trust.</div>
+                <div class="form-grid two"><label>Action Name<input id="custom-cleaning-name" maxlength="120" value="Custom Cleaning 1"></label><label>Description<input id="custom-cleaning-description" placeholder="Explain what this action does"></label></div>
+                <label>Python Code<textarea id="custom-cleaning-code" class="code-editor compact-code-editor" spellcheck="false">import pandas as pd
+
+def clean_data(df):
+    cleaned = df.copy()
+    return cleaned.drop_duplicates()</textarea></label>
+                <div class="validation-row"><div class="validation-output" id="custom-cleaning-validation">Not validated yet.</div><button class="button secondary small" id="validate-custom-cleaning" type="button">Validate Action</button><button class="button primary small" id="save-custom-cleaning" type="button">Save Action</button></div>
+                <div class="saved-cleaning-actions"><h3>Saved Custom Actions</h3><div id="custom-cleaning-list"></div></div>
+            </article>
+
+            <article class="card cleaning-visualization hidden" id="cleaning-visualization"></article>
+
+            <article class="card preview-card">
+                <div class="section-heading compact"><div><div><h2>Data Preview</h2><p id="cleaning-preview-caption">The first rows of the active original dataset.</p></div></div></div>
+                <div class="table-wrap"><table id="cleaning-preview"></table></div>
+            </article>
+
+            <article class="card output-card hidden" id="cleaning-output">
+                <div class="success-mark">✓</div><div><h2>New Dataset Created</h2><p id="cleaning-result-message"></p><div class="button-row"><a class="button secondary" id="download-cleaned-csv">Download CSV</a><a class="button secondary" id="download-cleaned-xlsx">Download XLSX</a><button class="button primary" id="send-cleaned-comparison">Send to Comparison</button></div></div>
+            </article>
+        </section>
+    </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,13 @@
+<!-- --------------------
+History Page
+Show the modelling results that were saved after earlier comparisons.
+-------------------- -->
+{% extends "base.html" %}
+{% block title %}History · DataComparison{% endblock %}
+{% block content %}
+<div class="workspace">
+    <header class="page-header"><div><span class="eyebrow">LOCAL TRACEABILITY</span><h1>Comparison History</h1><p>Your latest model comparisons are stored in a local per-user text file.</p></div><button class="button danger" id="clear-history">Delete History</button></header>
+    <div class="history-list" id="history-list"><div class="empty-card history-empty">Loading your local history…</div></div>
+</div>
+{% endblock %}
+

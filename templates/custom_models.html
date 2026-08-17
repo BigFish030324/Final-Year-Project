@@ -1,0 +1,34 @@
+<!-- --------------------
+Custom Models Page
+Let a student validate and save trusted local Python model code.
+-------------------- -->
+{% extends "base.html" %}
+{% block title %}Custom Python Models · DataComparison{% endblock %}
+{% block content %}
+<div class="workspace">
+    <header class="page-header"><div><span class="eyebrow">TRUSTED LOCAL CODE ONLY</span><h1>Custom Python Models</h1><p>Build a reusable model locally and connect editable parameters to your Python function.</p></div></header>
+    <div class="security-banner"><span class="security-icon">⌂</span><div><h2>Why Local Code Protects Your Privacy</h2><p>Your model code and datasets remain on this computer instead of being sent to a remote code runner. Restricted imports and a separate timed process reduce accidental access. For safety, only trusted Python code should be used because local code can access resources available to your account; this feature is not a public-hosting sandbox.</p></div></div>
+    <div class="custom-layout">
+        <section class="card custom-editor">
+            <div class="section-heading compact"><div><div><h2>Model Definition <button class="info-button" data-tooltip="A build_model(params) function receives values from your parameter fields and must return an object with fit and predict methods.">i</button></h2><p>Start from the example and change it carefully.</p></div></div></div>
+            <div class="form-grid two"><label>Model Name<input id="custom-name" value="Custom Model 1"><small id="custom-name-count">3 / 30 words</small></label><label><span class="label-line">Model Tag <button type="button" class="info-button" aria-label="Explain Model Tag" data-tooltip="Choose a suggested tag or type a new one. DataComparison maps it to the closest evaluation method while preserving your label.">i</button></span><input id="custom-model-tag" list="model-tag-suggestions" value="Classification" autocomplete="off" placeholder="Type or create a model tag"><datalist id="model-tag-suggestions"><option value="Classification"><option value="Regression"><option value="Regularised Regression"><option value="Time Series"><option value="Clustering"><option value="Recommendation"><option value="Anomaly Detection"></datalist><input id="custom-task" type="hidden" value="classification"></label></div>
+            <label>Description<textarea id="custom-description" rows="2">A locally defined model for experimenting with tree depth.</textarea></label>
+            <label>Python Code<textarea id="custom-code" class="code-editor" spellcheck="false">from sklearn.tree import DecisionTreeClassifier
+
+def build_model(params):
+    return DecisionTreeClassifier(
+        max_depth=int(params.get("max_depth", 5)),
+        random_state=42
+    )</textarea></label>
+            <div class="validation-row"><div class="validation-output" id="validation-output">Not validated yet.</div><button class="button secondary small" id="validate-code">Validate Model</button></div>
+        </section>
+        <aside class="custom-sidebar">
+            <section class="card rules-card"><h2>Rules for Custom Models</h2><ol>{% for rule in rules %}<li>{{ rule }}</li>{% endfor %}</ol></section>
+            <section class="card parameter-card"><div class="section-heading compact"><div><div><h2>Parameters</h2><p>Add parameters one at a time. Use a range such as <code>1..100</code>, comma-separated choices, or <code>none</code>.</p></div></div><button class="button primary small add-parameter-button" id="add-parameter">+ Add</button></div><div id="parameter-list"></div></section>
+            <button class="button primary wide custom-save-button" id="save-custom-model">Save to Model Shelf</button>
+        </aside>
+    </div>
+    <section class="card saved-custom" id="saved-models"><h2>Saved Local Models</h2><p class="muted">Modify or delete models stored in this local account.</p><div id="custom-model-list" class="library-grid compact-grid"></div></section>
+</div>
+{% endblock %}
+

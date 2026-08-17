@@ -1,0 +1,46 @@
+<!-- --------------------
+Login and Registration
+Allow a student to create a local account or sign in before using the website.
+-------------------- -->
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ 'Create Account' if mode == 'register' else 'Sign In' }} · DataComparison</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/website_styles.css') }}">
+</head>
+<body class="auth-page">
+    <main class="auth-shell">
+        <section class="auth-card">
+            <div class="brand auth-brand"><span class="brand-mark">DC</span><span class="brand-copy"><strong>DataComparison</strong><small>Explore. Compare. Learn.</small></span></div>
+            <h2>{{ 'Create Your Local Account' if mode == 'register' else 'Welcome Back' }}</h2>
+            <p class="muted">{{ 'Passwords are salted and hashed before local storage.' if mode == 'register' else 'Sign in to continue your local workspace.' }}</p>
+            {% with messages = get_flashed_messages(with_categories=true) %}{% for category, message in messages %}<div class="alert {{ category }}">{{ message }}</div>{% endfor %}{% endwith %}
+            <form method="post" class="stack-form">
+                {% if mode == 'register' %}
+                    <label>Display Name<input name="display_name" required autocomplete="name" minlength="2" maxlength="50" placeholder="e.g. BigFish"></label>
+                    <label>Email<input name="email" type="email" required autocomplete="email" placeholder="e.g. name@example.com"></label>
+                {% else %}
+                    <label>Email or Display Name<input name="identity" required autocomplete="username" placeholder="Enter your email or display name"></label>
+                {% endif %}
+                <label>Password<span class="password-field"><input name="password" type="password" required autocomplete="{{ 'new-password' if mode == 'register' else 'current-password' }}" minlength="8" placeholder="At least 8 characters"><button type="button" class="password-toggle" data-password-toggle aria-label="Show password" title="Show password"><svg aria-hidden="true" viewBox="0 0 24 24"><path class="eye-open" d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle class="eye-open" cx="12" cy="12" r="2.7"/><path class="eye-closed" d="m4 4 16 16M3 12s3.5-6 9-6c2.3 0 4.2.9 5.7 2M21 12s-3.5 6-9 6c-2.3 0-4.2-.9-5.7-2"/></svg></button></span></label>
+                <button class="button primary wide" type="submit">{{ 'Create Account' if mode == 'register' else 'Sign In' }}</button>
+            </form>
+            <p class="auth-switch">{% if mode == 'register' %}Already registered? <a href="{{ url_for('login') }}">Sign In</a>{% else %}New here? <a href="{{ url_for('register') }}">Create a Local Account</a>{% endif %}</p>
+        </section>
+        <section class="auth-intro">
+            <span class="eyebrow">FINAL YEAR PROJECT</span>
+            <h1>Understand Your Data Before Choosing a Model.</h1>
+            <p>Upload structured data, investigate its quality, clean it, and compare models through one beginner-friendly workflow.</p>
+            <div class="auth-points">
+                <span>✓ Local-first dataset storage</span>
+                <span>✓ Transparent automatic suggestions</span>
+                <span>✓ Fair train/test comparisons</span>
+            </div>
+        </section>
+    </main>
+    <script src="{{ url_for('static', filename='js/website_controller.js') }}"></script>
+</body>
+</html>
+
