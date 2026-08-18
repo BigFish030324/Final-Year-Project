@@ -21,10 +21,10 @@ REQUIRED_IMPORTS = (
     "pandas",
     "numpy",
     "sklearn",
-    "statsmodels",
     "openpyxl",
     "reportlab",
     "PIL",
+    "kagglehub",
 )
 
 
@@ -133,4 +133,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

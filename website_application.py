@@ -9,6 +9,7 @@ import json
 import os
 import re
 import secrets
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -18,6 +19,7 @@ import uuid
 from functools import wraps
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 
 # --------------------
@@ -85,7 +87,15 @@ def json_error(message: str, status: int = 400):
 
 
 def current_user() -> str | None:
-    return session.get("username")
+    username = session.get("username")
+    if not username:
+        return None
+    account = find_account(str(username))
+    if not account:
+        session.pop("username", None)
+        session.pop("active_dataset_id", None)
+        return None
+    return str(account[1].get("username") or account[0])
 
 
 def find_account(identifier: str, accounts: dict[str, Any] | None = None) -> tuple[str, dict[str, Any]] | None:
@@ -197,6 +207,100 @@ def save_derived_dataset(frame: pd.DataFrame, *, name: str, metadata: dict[str, 
     meta.update(metadata)
     save_metadata(meta)
     return meta
+
+
+# --------------------
+# Kaggle Dataset Import
+# Check a public Kaggle dataset link, download it into temporary local storage and keep its largest usable CSV or XLSX file.
+# --------------------
+def kaggle_dataset_handle(dataset_url: str) -> str:
+    value = str(dataset_url or "").strip()
+    if not value:
+        raise UserFacingError("Paste a Kaggle dataset URL first.")
+    if "://" not in value:
+        value = f"https://{value}"
+    parsed = urlparse(value)
+    hostname = (parsed.hostname or "").lower()
+    if parsed.scheme not in {"http", "https"} or hostname not in {"kaggle.com", "www.kaggle.com"}:
+        raise UserFacingError("Use a Kaggle link starting with https://www.kaggle.com/datasets/.")
+    parts = [part for part in parsed.path.split("/") if part]
+    if len(parts) < 3 or parts[0].lower() != "datasets":
+        raise UserFacingError("Use a Kaggle dataset page link, for example kaggle.com/datasets/owner/dataset-name.")
+    owner, dataset_name = parts[1], parts[2]
+    safe_part = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]*$")
+    if not safe_part.fullmatch(owner) or not safe_part.fullmatch(dataset_name):
+        raise UserFacingError("The Kaggle dataset owner or dataset name is not valid.")
+    return f"{owner}/{dataset_name}"
+
+
+def import_kaggle_dataset(dataset_url: str) -> dict[str, Any]:
+    handle = kaggle_dataset_handle(dataset_url)
+    try:
+        import kagglehub
+    except ImportError as error:
+        raise UserFacingError(
+            "Kaggle importing is not installed yet. Run 'python -m pip install -r requirements.txt' and restart the website."
+        ) from error
+
+    upload_directory = user_upload_dir()
+    with tempfile.TemporaryDirectory(prefix="kaggle_import_", dir=upload_directory) as temporary:
+        try:
+            downloaded = Path(kagglehub.dataset_download(
+                handle,
+                output_dir=temporary,
+                force_download=True,
+            ))
+        except Exception as error:
+            message = str(error).lower()
+            if "401" in message or "403" in message or "permission" in message or "credential" in message:
+                raise UserFacingError(
+                    "Kaggle did not allow this download. Use a public dataset that does not require account permission."
+                ) from error
+            raise UserFacingError(
+                "The Kaggle dataset could not be downloaded. Check that the public dataset link still exists and try again."
+            ) from error
+
+        search_root = downloaded if downloaded.is_dir() else downloaded.parent
+        downloaded_files = list(search_root.rglob("*")) if downloaded.is_dir() else [downloaded]
+        supported_files = [
+            path for path in downloaded_files
+            if path.is_file() and path.suffix.lower() in {".csv", ".xlsx"} and path.stat().st_size > 0
+        ]
+        if not supported_files:
+            raise UserFacingError("This Kaggle dataset has no non-empty CSV or XLSX file to investigate.")
+
+        allowed_files = [path for path in supported_files if path.stat().st_size <= MAX_UPLOAD_BYTES]
+        if not allowed_files:
+            raise UserFacingError("The CSV or XLSX files in this Kaggle dataset exceed the 1,000 MB limit.")
+
+        first_dataset_error: str | None = None
+        for source_path in sorted(allowed_files, key=lambda path: path.stat().st_size, reverse=True):
+            dataset_id = uuid.uuid4().hex
+            stored_path = upload_directory / f"{dataset_id}{source_path.suffix.lower()}"
+            shutil.copy2(source_path, stored_path)
+            try:
+                metadata = profile_dataset(
+                    stored_path,
+                    original_name=source_path.name,
+                    dataset_id=dataset_id,
+                )
+            except UserFacingError as error:
+                stored_path.unlink(missing_ok=True)
+                first_dataset_error = first_dataset_error or str(error)
+                continue
+            metadata.update({
+                "source_type": "kaggle",
+                "source_url": f"https://www.kaggle.com/datasets/{handle}",
+                "kaggle_handle": handle,
+                "kaggle_file": source_path.relative_to(search_root).as_posix(),
+            })
+            save_metadata(metadata)
+            session["active_dataset_id"] = dataset_id
+            return metadata
+
+    raise UserFacingError(
+        first_dataset_error or "The Kaggle dataset files could not be read as usable tabular data."
+    )
 
 
 def next_numbered_record_name(directory: Path, prefix: str) -> str:
@@ -452,6 +556,14 @@ def upload_dataset():
     return jsonify({"ok": True, "dataset": meta})
 
 
+@app.post("/api/datasets/kaggle")
+@login_required
+def upload_kaggle_dataset():
+    payload = request.get_json(silent=True) or {}
+    metadata = import_kaggle_dataset(str(payload.get("url", "")))
+    return jsonify({"ok": True, "dataset": metadata})
+
+
 @app.get("/api/datasets")
 @login_required
 def datasets_list():
@@ -565,45 +677,28 @@ def models_catalog():
         "max_features": "Number of input features considered when choosing a tree split.",
         "bootstrap": "Train each forest tree from a resampled copy of the training rows.",
         "n_estimators": "Number of trees or boosting stages built by the model.",
-        "var_smoothing": "Small stability value added to probability calculations.",
         "C": "Regularisation strength; smaller values create a simpler model.",
         "max_iter": "Maximum number of training iterations.",
         "solver": "Algorithm used to optimise the model during training.",
         "class_weight": "Optionally give under-represented classes more influence.",
         "tol": "Training stops when improvements become smaller than this value.",
-        "hidden_layer_sizes": "Comma-separated neuron counts for each hidden layer.",
-        "activation": "Activation function used by hidden neural-network layers.",
-        "learning_rate_init": "Starting step size used while training the neural network.",
-        "alpha": "Regularisation value used to reduce overfitting.",
-        "p": "Number of earlier observations used by ARIMA.",
-        "d": "Number of differencing steps used by ARIMA.",
-        "q": "Number of earlier forecast errors used by ARIMA.",
-        "n_neighbors": "Number of nearby rows considered for each prediction.",
-        "weights": "Whether neighbours contribute equally or by distance.",
-        "metric": "Distance formula used to decide which rows are neighbours.",
-        "learning_rate": "How strongly each new boosting stage corrects earlier errors.",
-        "loss": "Error function the boosting stages try to reduce.",
-        "subsample": "Fraction of training rows used for each boosting stage.",
-        "n_clusters": "Number of groups K-Means should discover.",
+        "n_clusters": "Number of groups the clustering model should discover.",
         "n_init": "Number of starting arrangements tried before choosing the best clustering.",
         "init": "Method used to choose the initial cluster centres.",
+        "linkage": "Rule used to decide which two groups should be joined next.",
     }
     parameter_options = {
-        "criterion": ["auto", "gini", "entropy", "log_loss"] if not meta or meta.get("task") != "regression" else ["auto", "squared_error", "friedman_mse", "absolute_error", "poisson"],
         "splitter": ["best", "random"], "max_features": ["auto", "sqrt", "log2"],
         "solver": ["lbfgs", "liblinear", "newton-cg", "sag", "saga"],
-        "class_weight": ["none", "balanced"], "activation": ["relu", "tanh", "logistic", "identity"],
-        "weights": ["uniform", "distance"], "metric": ["minkowski", "euclidean", "manhattan"],
-        "loss": ["auto", "log_loss", "exponential"] if not meta or meta.get("task") != "regression" else ["auto", "squared_error", "absolute_error", "huber", "quantile"],
+        "class_weight": ["none", "balanced"],
         "init": ["k-means++", "random"],
+        "linkage": ["ward", "complete", "average", "single"],
     }
     parameter_limits = {
         "max_depth": (1, 100), "min_samples_split": (2, 1000), "min_samples_leaf": (1, 1000),
-        "n_estimators": (1, 2000), "max_iter": (1, 5000), "n_neighbors": (1, 1000),
-        "n_clusters": (2, 100), "n_init": (1, 100), "p": (1, 20), "d": (0, 5), "q": (0, 20),
-        "C": (0.000001, 1000000), "tol": (0.000000001, 1), "alpha": (0, 1000),
-        "learning_rate": (0.000001, 1), "learning_rate_init": (0.000001, 1),
-        "subsample": (0.01, 1), "var_smoothing": (1e-15, 1),
+        "n_estimators": (1, 2000), "max_iter": (1, 5000),
+        "n_clusters": (2, 100), "n_init": (1, 100),
+        "C": (0.000001, 1000000), "tol": (0.000000001, 1),
     }
     for model in MODEL_CATALOG:
         item = dict(model)
@@ -614,8 +709,10 @@ def models_catalog():
                 "type": "boolean" if isinstance(value, bool) else "integer" if isinstance(value, int) else "number" if isinstance(value, float) else "text",
                 "description": parameter_help.get(name, "Model library default."),
             }
-            if name == "solver" and model["id"] == "neural_network":
-                schema["choices"] = ["adam", "sgd", "lbfgs"]
+            if name == "criterion" and model["id"] == "decision_tree":
+                schema["choices"] = ["auto", "gini", "entropy", "log_loss"]
+            elif name == "criterion" and model["id"] == "random_forest":
+                schema["choices"] = ["auto", "squared_error", "friedman_mse", "absolute_error", "poisson"]
             elif name in parameter_options:
                 schema["choices"] = parameter_options[name]
             if name in parameter_limits:
@@ -628,7 +725,7 @@ def models_catalog():
         catalog.append(item)
     for file in (CUSTOM_DIR / user_slug()).glob("*.json") if (CUSTOM_DIR / user_slug()).exists() else []:
         custom = load_json(file, None)
-        if custom:
+        if custom and custom.get("task") != "time_series":
             custom_task = custom.get("task", "classification")
             custom_compatible = None
             custom_reason = "Upload a dataset to check compatibility."
@@ -636,9 +733,6 @@ def models_catalog():
                 if custom_task == "clustering":
                     custom_compatible = True
                     custom_reason = "Clustering explores feature groups without using the target for training."
-                elif custom_task == "time_series":
-                    custom_compatible = meta.get("task") == "regression" and bool(meta.get("datetime_columns"))
-                    custom_reason = "Time-series models need a numeric target and a date/time column."
                 else:
                     custom_compatible = custom_task == meta.get("task")
                     custom_reason = "Custom model task must match the detected dataset task."
@@ -1081,8 +1175,8 @@ def normalise_custom_model(payload: dict[str, Any], model_id: str | None = None)
     if errors:
         raise UserFacingError("The custom model does not pass validation: " + " ".join(errors))
     task = payload.get("task")
-    if task not in {"classification", "regression", "time_series", "clustering"}:
-        raise UserFacingError("Choose classification, regression, time series, or clustering.")
+    if task not in {"classification", "regression", "clustering"}:
+        raise UserFacingError("Choose classification, regression, or clustering.")
     model_id = secure_filename(str(model_id or payload.get("id") or uuid.uuid4().hex))
     existing = load_json(custom_model_directory() / f"{model_id}.json", {})
     name = str(payload.get("name", "")).strip() or str(existing.get("name", "")).strip() or next_custom_model_name()
@@ -1192,7 +1286,7 @@ def save_settings():
     settings_data = load_json(SETTINGS_FILE, {})
     settings_data[current_user().lower()] = {
         "theme": payload.get("theme", "light"),
-        "train_pct": max(10, min(90, int(payload.get("train_pct", 70)))),
+        "train_pct": max(0, min(100, int(payload.get("train_pct", 70)))),
         "random_seed": int(payload.get("random_seed", 42)),
         "processing": processing,
         "tooltips": bool(payload.get("tooltips", True)),

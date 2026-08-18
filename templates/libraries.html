@@ -7,9 +7,8 @@ Explain every built-in and custom model before the student adds it to comparison
 {% block content %}
 <div class="workspace">
     <header class="page-header"><div><span class="eyebrow">LEARN BEFORE YOU CHOOSE</span><h1>Model Library</h1><p>Plain-language descriptions explain what each model does and when it is useful.</p></div><a class="button primary" href="{{ url_for('custom_models') }}">Create a Python Model</a></header>
-    <div class="library-controls card"><input id="library-search" type="search" placeholder="Search by name, family, tag, or use case"><select id="library-task" aria-label="Model type"><option value="all">All Model Types</option><option value="classification">Classification</option><option value="regression">Regression</option><option value="time_series">Time Series</option><option value="clustering">Clustering</option><option value="custom">Custom Model</option></select></div>
+    <div class="library-controls card"><input id="library-search" type="search" placeholder="Search by name, family, tag, or use case"><select id="library-task" aria-label="Model type"><option value="all">All Model Types</option><option value="classification">Classification</option><option value="regression">Regression</option><option value="clustering">Clustering</option><option value="custom">Custom Model</option></select></div>
     <div class="library-grid" id="library-grid"></div>
-    <div class="learning-note"><strong>New to these terms?</strong><span>Classification predicts a category, regression predicts a number, time-series models forecast ordered values, and clustering discovers groups without a target.</span></div>
+    <div class="learning-note"><strong>New to these terms?</strong><span>Classification predicts a category, regression predicts a number, and clustering discovers groups without a target.</span></div>
 </div>
 {% endblock %}
-

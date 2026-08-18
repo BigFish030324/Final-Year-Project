@@ -56,39 +56,14 @@ ID_HINTS = ("id", "uuid", "guid", "index", "serial", "code")
 
 MODEL_CATALOG: list[dict[str, Any]] = [
     {
-        "id": "linear_regression", "name": "Linear Regression", "family": "Regression",
-        "tasks": ["regression"], "version": "scikit-learn",
-        "summary": "Fits a straight-line relationship to predict a continuous number.",
-        "best_for": "Numeric targets with roughly linear relationships and a clear baseline.",
-        "defaults": {"fit_intercept": True, "positive": False}, "factor": 0.35,
-    },
-    {
         "id": "decision_tree", "name": "Decision Tree", "family": "Tree-based",
-        "tasks": ["classification", "regression"], "version": "scikit-learn",
-        "summary": "Learns easy-to-follow if/then decision rules from the data.",
-        "best_for": "Mixed patterns and beginners who want an interpretable model.",
+        "tasks": ["classification"], "version": "scikit-learn",
+        "summary": "Uses easy-to-follow if/then rules to predict a category.",
+        "best_for": "Classification with mixed patterns and an interpretable result.",
         "defaults": {
             "criterion": "auto", "splitter": "best", "max_depth": 8,
             "min_samples_split": 2, "min_samples_leaf": 1, "max_features": "auto",
         }, "factor": 0.55,
-    },
-    {
-        "id": "random_forest", "name": "Random Forest", "family": "Ensemble",
-        "tasks": ["classification", "regression"], "version": "scikit-learn",
-        "summary": "Combines many decision trees to make a more stable prediction.",
-        "best_for": "Tabular data with non-linear relationships and mixed feature importance.",
-        "defaults": {
-            "n_estimators": 120, "criterion": "auto", "max_depth": 12,
-            "min_samples_split": 2, "min_samples_leaf": 1,
-            "max_features": "sqrt", "bootstrap": True,
-        }, "factor": 2.2,
-    },
-    {
-        "id": "naive_bayes", "name": "Naive Bayes", "family": "Probabilistic",
-        "tasks": ["classification"], "version": "scikit-learn",
-        "summary": "Uses probability to decide which class an example most likely belongs to.",
-        "best_for": "Fast classification baselines, especially smaller or high-dimensional data.",
-        "defaults": {"var_smoothing": 1e-9}, "factor": 0.25,
     },
     {
         "id": "logistic_regression", "name": "Logistic Regression", "family": "Classification",
@@ -98,40 +73,22 @@ MODEL_CATALOG: list[dict[str, Any]] = [
         "defaults": {"C": 1.0, "max_iter": 500, "solver": "lbfgs", "class_weight": "none", "tol": 0.0001}, "factor": 0.65,
     },
     {
-        "id": "neural_network", "name": "Neural Network", "family": "Deep learning",
-        "tasks": ["classification", "regression"], "version": "scikit-learn MLP",
-        "summary": "Learns layered non-linear relationships between inputs and outcomes.",
-        "best_for": "Scaled numeric data with enough rows and more complex patterns.",
+        "id": "linear_regression", "name": "Linear Regression", "family": "Regression",
+        "tasks": ["regression"], "version": "scikit-learn",
+        "summary": "Fits a straight-line relationship to predict a continuous number.",
+        "best_for": "Numeric targets with roughly linear relationships and a clear baseline.",
+        "defaults": {"fit_intercept": True, "positive": False}, "factor": 0.35,
+    },
+    {
+        "id": "random_forest", "name": "Random Forest", "family": "Regression",
+        "tasks": ["regression"], "version": "scikit-learn",
+        "summary": "Combines many decision trees to predict a continuous number.",
+        "best_for": "Regression with non-linear relationships and interacting input features.",
         "defaults": {
-            "hidden_layer_sizes": [64, 32], "activation": "relu", "solver": "adam",
-            "learning_rate_init": 0.001, "max_iter": 300, "alpha": 0.0001,
-        },
-        "factor": 3.2,
-    },
-    {
-        "id": "arima", "name": "ARIMA", "family": "Time series",
-        "tasks": ["time_series"], "version": "statsmodels",
-        "summary": "Forecasts future numeric values from their earlier time-ordered values.",
-        "best_for": "A numeric target with a meaningful date/time column and regular observations.",
-        "defaults": {"p": 1, "d": 1, "q": 1}, "factor": 4.0,
-    },
-    {
-        "id": "knn", "name": "K-Nearest Neighbours", "family": "Instance-based",
-        "tasks": ["classification", "regression"], "version": "scikit-learn",
-        "summary": "Predicts using the most similar examples already present in the data.",
-        "best_for": "Smaller, scaled datasets where nearby rows tend to have similar outcomes.",
-        "defaults": {"n_neighbors": 5, "weights": "uniform", "metric": "minkowski", "p": 2}, "factor": 1.1,
-    },
-    {
-        "id": "gradient_boosting", "name": "Gradient Boosting", "family": "Ensemble",
-        "tasks": ["classification", "regression"], "version": "scikit-learn",
-        "summary": "Builds trees in sequence so each new tree corrects earlier mistakes.",
-        "best_for": "Structured data where predictive performance matters more than simplicity.",
-        "defaults": {
-            "loss": "auto", "n_estimators": 100, "learning_rate": 0.1,
-            "max_depth": 3, "min_samples_split": 2, "min_samples_leaf": 1, "subsample": 1.0,
-        },
-        "factor": 2.7,
+            "n_estimators": 120, "criterion": "auto", "max_depth": 12,
+            "min_samples_split": 2, "min_samples_leaf": 1,
+            "max_features": "sqrt", "bootstrap": True,
+        }, "factor": 2.2,
     },
     {
         "id": "kmeans", "name": "K-Means", "family": "Clustering",
@@ -139,6 +96,13 @@ MODEL_CATALOG: list[dict[str, Any]] = [
         "summary": "Groups similar rows into clusters without needing a prediction target.",
         "best_for": "Exploring natural groups in numeric data; it is not a supervised predictor.",
         "defaults": {"n_clusters": 3, "init": "k-means++", "n_init": 10, "max_iter": 300, "tol": 0.0001}, "factor": 0.9,
+    },
+    {
+        "id": "agglomerative_clustering", "name": "Agglomerative Clustering", "family": "Clustering",
+        "tasks": ["clustering"], "version": "scikit-learn",
+        "summary": "Builds a hierarchy by repeatedly joining the most similar groups of rows.",
+        "best_for": "Comparing hierarchical groups with the centroid-based groups from K-Means.",
+        "defaults": {"n_clusters": 3, "linkage": "ward"}, "factor": 1.6,
     },
 ]
 
@@ -381,14 +345,8 @@ def model_compatibility(model_id: str, task: str, datetime_columns: list[str]) -
     model = MODEL_BY_ID.get(model_id)
     if not model:
         return False, "This model is not available."
-    if model_id == "arima":
-        if task != "regression":
-            return False, "ARIMA needs a continuous numeric target."
-        if not datetime_columns:
-            return False, "ARIMA also needs a date or time column."
-        return True, "ARIMA will use a chronological train/test split."
-    if model_id == "kmeans":
-        return True, "K-Means explores clusters and does not predict the selected target."
+    if "clustering" in model["tasks"]:
+        return True, f"{model['name']} explores groups and does not predict the selected target."
     if task in model["tasks"]:
         return True, f"Suitable for this {task} task."
     return False, f"{model['name']} does not support {task} targets."
@@ -413,21 +371,19 @@ def recommend_models(meta: dict[str, Any]) -> dict[str, Any]:
     task = str(meta.get("task", "unknown"))
     if task == "classification":
         choices = [
-            ("logistic_regression", "Provides a fast, explainable probability baseline."),
             ("decision_tree", "Adds readable if/then rules that can capture non-linear patterns."),
-        ]
-    elif task == "regression" and meta.get("date_column"):
-        choices = [
-            ("arima", "Uses the selected date column to model chronological patterns."),
-            ("linear_regression", "Provides a transparent baseline using the same chronological split."),
+            ("logistic_regression", "Provides a fast, explainable probability baseline."),
         ]
     elif task == "regression":
         choices = [
             ("linear_regression", "Provides a fast and transparent numeric baseline."),
-            ("decision_tree", "Adds readable non-linear rules for comparison with the baseline."),
+            ("random_forest", "Adds an ensemble that can capture non-linear numeric relationships."),
         ]
     else:
-        choices = [("kmeans", "Explores groups without requiring a prediction target.")]
+        choices = [
+            ("kmeans", "Provides a centroid-based clustering baseline."),
+            ("agglomerative_clustering", "Adds hierarchical grouping for direct comparison."),
+        ]
 
     models = []
     for model_id, reason in choices:
@@ -520,16 +476,10 @@ def _build_preprocessor(frame: pd.DataFrame):
 
 def _make_estimator(model_id: str, task: str, params: dict[str, Any], seed: int):
     try:
-        from sklearn.cluster import KMeans
-        from sklearn.ensemble import (
-            GradientBoostingClassifier, GradientBoostingRegressor,
-            RandomForestClassifier, RandomForestRegressor,
-        )
+        from sklearn.cluster import AgglomerativeClustering, KMeans
+        from sklearn.ensemble import RandomForestRegressor
         from sklearn.linear_model import LinearRegression, LogisticRegression
-        from sklearn.naive_bayes import GaussianNB
-        from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
-        from sklearn.neural_network import MLPClassifier, MLPRegressor
-        from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
+        from sklearn.tree import DecisionTreeClassifier
     except ImportError as exc:
         raise UserFacingError("The analysis service is temporarily unavailable. Restart DataComparison or contact the administrator.") from exc
 
@@ -546,28 +496,15 @@ def _make_estimator(model_id: str, task: str, params: dict[str, Any], seed: int)
     if model_id == "linear_regression":
         return LinearRegression(**defaults)
     if model_id == "decision_tree":
-        cls = DecisionTreeClassifier if task == "classification" else DecisionTreeRegressor
-        return cls(random_state=seed, **defaults)
+        return DecisionTreeClassifier(random_state=seed, **defaults)
     if model_id == "random_forest":
-        cls = RandomForestClassifier if task == "classification" else RandomForestRegressor
-        return cls(random_state=seed, n_jobs=-1, **defaults)
-    if model_id == "naive_bayes":
-        return GaussianNB(**defaults)
+        return RandomForestRegressor(random_state=seed, n_jobs=-1, **defaults)
     if model_id == "logistic_regression":
         return LogisticRegression(random_state=seed, **defaults)
-    if model_id == "neural_network":
-        if isinstance(defaults.get("hidden_layer_sizes"), list):
-            defaults["hidden_layer_sizes"] = tuple(defaults["hidden_layer_sizes"])
-        cls = MLPClassifier if task == "classification" else MLPRegressor
-        return cls(random_state=seed, early_stopping=True, **defaults)
-    if model_id == "knn":
-        cls = KNeighborsClassifier if task == "classification" else KNeighborsRegressor
-        return cls(**defaults)
-    if model_id == "gradient_boosting":
-        cls = GradientBoostingClassifier if task == "classification" else GradientBoostingRegressor
-        return cls(random_state=seed, **defaults)
     if model_id == "kmeans":
         return KMeans(random_state=seed, **defaults)
+    if model_id == "agglomerative_clustering":
+        return AgglomerativeClustering(**defaults)
     raise UserFacingError(f"Model '{model_id}' is not available for standard training.")
 
 
@@ -584,13 +521,12 @@ def _run_standard_model(
     train_pct: int,
     seed: int,
     params: dict[str, Any],
-    chronological: bool = False,
-    date_column: str | None = None,
 ) -> dict[str, Any]:
     try:
         from sklearn.base import clone
         from sklearn.metrics import (
-            accuracy_score, adjusted_rand_score, confusion_matrix, f1_score,
+            accuracy_score, adjusted_rand_score, calinski_harabasz_score,
+            confusion_matrix, davies_bouldin_score, f1_score,
             mean_absolute_error, mean_squared_error, precision_score, r2_score,
             recall_score, silhouette_score,
         )
@@ -600,50 +536,59 @@ def _run_standard_model(
         raise UserFacingError("The analysis service is temporarily unavailable. Restart DataComparison or contact the administrator.") from exc
 
     used = frame[feature_columns + ([target] if target not in feature_columns else [])].copy()
-    if model_id != "kmeans":
+    is_clustering = "clustering" in MODEL_BY_ID[model_id]["tasks"]
+    if not is_clustering:
         used = used.dropna(subset=[target])
     if len(used) < 10:
         raise UserFacingError("At least 10 usable rows are required for model comparison.")
-    if chronological and date_column and date_column in used.columns:
-        used[date_column] = pd.to_datetime(used[date_column], errors="coerce")
-        used = used.dropna(subset=[date_column]).sort_values(date_column)
-        used[date_column] = used[date_column].astype("int64") / 1_000_000_000
     X = used[feature_columns]
     y = used[target] if target in used else None
     preprocessor = _build_preprocessor(X)
     estimator = _make_estimator(model_id, task, params, seed)
     started = time.perf_counter()
 
-    if model_id == "kmeans":
+    if is_clustering:
+        cluster_count = int(estimator.get_params(deep=False).get("n_clusters", 0))
+        if not 2 <= cluster_count < len(used):
+            raise UserFacingError(
+                f"Choose between 2 and {len(used) - 1} clusters for this dataset."
+            )
         transformed = preprocessor.fit_transform(X)
         labels = estimator.fit_predict(transformed)
-        metrics = {"inertia": _metric_number(estimator.inertia_)}
-        if len(set(labels)) > 1 and len(transformed) > len(set(labels)):
-            sample_size = min(10_000, len(transformed))
-            metrics["silhouette_score"] = _metric_number(
-                silhouette_score(transformed, labels, sample_size=sample_size, random_state=seed)
-            )
+        unique_labels = set(labels)
+        metrics: dict[str, float] = {}
+        if 1 < len(unique_labels) < len(transformed):
+            if len(transformed) > 10_000:
+                sample_indexes = np.random.default_rng(seed).choice(len(transformed), 10_000, replace=False)
+                metric_features = transformed[sample_indexes]
+                metric_labels = labels[sample_indexes]
+            else:
+                metric_features = transformed
+                metric_labels = labels
+            if 1 < len(set(metric_labels)) < len(metric_labels):
+                metrics.update({
+                    "silhouette_score": _metric_number(silhouette_score(metric_features, metric_labels)),
+                    "calinski_harabasz_score": _metric_number(calinski_harabasz_score(metric_features, metric_labels)),
+                    "davies_bouldin_score": _metric_number(davies_bouldin_score(metric_features, metric_labels)),
+                })
         if y is not None and y.nunique(dropna=True) > 1:
             encoded = pd.factorize(y.astype(str))[0]
             metrics["adjusted_rand_index"] = _metric_number(adjusted_rand_score(encoded, labels))
+        if model_id == "kmeans":
+            metrics["inertia"] = _metric_number(estimator.inertia_)
         counts = pd.Series(labels).value_counts().sort_index()
         return {
             "model_id": model_id, "name": MODEL_BY_ID[model_id]["name"], "task": "clustering",
             "parameters": estimator.get_params(deep=False), "metrics": metrics,
             "training_seconds": round(time.perf_counter() - started, 4),
             "rows_used": len(used), "chart": {"labels": [f"Cluster {i}" for i in counts.index], "values": counts.tolist()},
-            "note": "K-Means discovers groups; its scores are not directly comparable with prediction metrics.",
+            "note": "Clustering scores can be compared with other clustering models, but not with classification or regression metrics.",
         }
 
     stratify = y if task == "classification" and y.value_counts().min() >= 2 else None
-    if chronological:
-        split = max(5, min(len(used) - 3, int(len(used) * train_pct / 100)))
-        X_train, X_test = X.iloc[:split], X.iloc[split:]
-        y_train, y_test = y.iloc[:split], y.iloc[split:]
-    else:
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, train_size=train_pct / 100, random_state=seed, stratify=stratify,
-        )
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, train_size=train_pct / 100, random_state=seed, stratify=stratify,
+    )
     pipeline = Pipeline([("prepare", preprocessor), ("model", estimator)])
     pipeline.fit(X_train, y_train)
     predicted = pipeline.predict(X_test)
@@ -677,55 +622,11 @@ def _run_standard_model(
             "predicted": [safe_json_value(v) for v in np.asarray(predicted)[:limit]],
         }
     return {
-        "model_id": model_id, "name": MODEL_BY_ID[model_id]["name"], "task": "time_series" if chronological else task,
+        "model_id": model_id, "name": MODEL_BY_ID[model_id]["name"], "task": task,
         "parameters": estimator.get_params(deep=False), "metrics": metrics,
         "training_seconds": round(time.perf_counter() - started, 4),
         "rows_used": len(used), "train_rows": len(X_train), "test_rows": len(X_test),
         "chart": chart,
-    }
-
-
-def _run_arima(
-    frame: pd.DataFrame, target: str, date_column: str, train_pct: int, params: dict[str, Any]
-) -> dict[str, Any]:
-    try:
-        from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-        from statsmodels.tsa.arima.model import ARIMA
-    except ImportError as exc:
-        raise UserFacingError(
-            "The forecasting service is temporarily unavailable. Restart DataComparison or contact the administrator."
-        ) from exc
-    used = frame[[date_column, target]].copy()
-    used[date_column] = pd.to_datetime(used[date_column], errors="coerce")
-    used[target] = pd.to_numeric(used[target], errors="coerce")
-    used = used.dropna().sort_values(date_column)
-    if len(used) < 30:
-        raise UserFacingError("ARIMA requires at least 30 time-ordered numeric observations.")
-    split = max(10, min(len(used) - 5, int(len(used) * train_pct / 100)))
-    train, test = used[target].iloc[:split], used[target].iloc[split:]
-    config = dict(MODEL_BY_ID["arima"]["defaults"])
-    config.update(params or {})
-    order = (int(config["p"]), int(config["d"]), int(config["q"]))
-    started = time.perf_counter()
-    fitted = ARIMA(train, order=order).fit()
-    predicted = fitted.forecast(steps=len(test))
-    mse = mean_squared_error(test, predicted)
-    metrics = {
-        "mae": _metric_number(mean_absolute_error(test, predicted)),
-        "mse": _metric_number(mse), "rmse": _metric_number(math.sqrt(mse)),
-        "r2": _metric_number(r2_score(test, predicted)) if len(test) > 1 else 0.0,
-    }
-    return {
-        "model_id": "arima", "name": "ARIMA", "task": "time_series",
-        "parameters": {"order": list(order)}, "metrics": metrics,
-        "training_seconds": round(time.perf_counter() - started, 4),
-        "rows_used": len(used), "train_rows": len(train), "test_rows": len(test),
-        "chart": {
-            "type": "forecast",
-            "labels": [safe_json_value(v) for v in used[date_column].iloc[split:].head(80)],
-            "actual": [safe_json_value(v) for v in test.head(80)],
-            "predicted": [safe_json_value(v) for v in predicted.head(80)],
-        },
     }
 
 
@@ -738,7 +639,6 @@ def _run_custom_model(
     train_pct: int,
     seed: int,
     params: dict[str, Any],
-    date_column: str | None = None,
 ) -> dict[str, Any]:
     """Run a validated local model in a separate, time-limited process.
 
@@ -759,11 +659,9 @@ def _run_custom_model(
     declared_task = str(definition.get("task", "classification"))
     if declared_task in {"classification", "regression"} and declared_task != task:
         raise UserFacingError(f"This custom model supports {declared_task}, but the dataset requires {task}.")
-    if declared_task == "time_series" and task != "regression":
-        raise UserFacingError("A custom time-series model requires a numeric target.")
     if declared_task == "clustering" and not feature_columns:
         raise UserFacingError("A custom clustering model requires at least one input column.")
-    metric_task = "regression" if declared_task == "time_series" else declared_task
+    metric_task = declared_task
     if declared_task == "clustering":
         used = frame[feature_columns].dropna(how="all").copy()
         if len(used) < 10:
@@ -777,23 +675,14 @@ def _run_custom_model(
         y_test = np.asarray([], dtype=float)
     else:
         used = frame[feature_columns + [target]].dropna(subset=[target]).copy()
-        if declared_task == "time_series":
-            if not date_column or date_column not in frame.columns:
-                raise UserFacingError("Select a date/time column before running a custom time-series model.")
-            order = pd.to_datetime(frame.loc[used.index, date_column], errors="coerce")
-            used = used.assign(__time_order=order).dropna(subset=["__time_order"]).sort_values("__time_order").drop(columns="__time_order")
         if len(used) < 10:
             raise UserFacingError("At least 10 usable rows are required for a custom model.")
         X = used[feature_columns]
         y = used[target]
-        if declared_task == "time_series":
-            split = max(5, min(len(used) - 3, int(len(used) * train_pct / 100)))
-            X_train, X_test, y_train, y_test = X.iloc[:split], X.iloc[split:], y.iloc[:split], y.iloc[split:]
-        else:
-            stratify = y if metric_task == "classification" and y.value_counts().min() >= 2 else None
-            X_train, X_test, y_train, y_test = train_test_split(
-                X, y, train_size=train_pct / 100, random_state=seed, stratify=stratify,
-            )
+        stratify = y if metric_task == "classification" and y.value_counts().min() >= 2 else None
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, train_size=train_pct / 100, random_state=seed, stratify=stratify,
+        )
         preprocessor = _build_preprocessor(X)
         X_train_ready = np.asarray(preprocessor.fit_transform(X_train), dtype=float)
         X_test_ready = np.asarray(preprocessor.transform(X_test), dtype=float)
@@ -886,6 +775,9 @@ def compare_models(
     progress = progress or (lambda percent, message: None)
     progress(8, "Reading the active dataset")
     frame, sampled = _load_for_training(path, mode, seed)
+    uses_agglomerative = any(request.get("id") == "agglomerative_clustering" for request in model_requests)
+    if uses_agglomerative and len(frame) > 5_000:
+        frame = frame.sample(n=5_000, random_state=seed).sort_index()
     sampled = len(frame) < int(meta.get("rows", len(frame)))
     frame.columns = [str(column) for column in frame.columns]
     target = str(meta.get("target"))
@@ -896,13 +788,8 @@ def compare_models(
         selected.append(target)
     feature_columns = [column for column in selected if column != target]
     task, task_reason = detect_task(frame[target])
-    date_column = meta.get("date_column") or (meta.get("datetime_columns") or [None])[0]
     progress(18, "Preparing selected columns and checking model compatibility")
     standard_tasks = []
-    has_time_series = any(
-        request.get("id") == "arima" or (request.get("definition") or {}).get("task") == "time_series"
-        for request in model_requests
-    )
     for request in model_requests:
         model_id = request.get("id", "")
         if model_id.startswith("custom:"):
@@ -914,12 +801,8 @@ def compare_models(
         compatible, reason = model_compatibility(model_id, task, meta.get("datetime_columns", []))
         if not compatible:
             raise UserFacingError(reason)
-        if model_id == "kmeans":
+        if "clustering" in MODEL_BY_ID[model_id]["tasks"]:
             standard_tasks.append("clustering")
-        elif model_id == "arima":
-            standard_tasks.append("time_series")
-        elif has_time_series and task == "regression" and "regression" in MODEL_BY_ID[model_id]["tasks"]:
-            standard_tasks.append("time_series")
         else:
             standard_tasks.append(task)
     if len(set(standard_tasks)) > 1:
@@ -929,19 +812,14 @@ def compare_models(
     for index, request in enumerate(model_requests):
         model_id = request.get("id", "")
         progress(25 + index * 35, f"Training {request.get('name') or MODEL_BY_ID.get(model_id, {}).get('name', 'model')}")
-        if model_id == "arima":
-            if not date_column:
-                raise UserFacingError("Select a date/time column before running ARIMA.")
-            result = _run_arima(frame, target, date_column, train_pct, request.get("params", {}))
-        elif model_id.startswith("custom:"):
+        if model_id.startswith("custom:"):
             result = _run_custom_model(
                 request.get("definition") or {}, frame, target, feature_columns, task,
-                train_pct, seed, request.get("params", {}), date_column,
+                train_pct, seed, request.get("params", {}),
             )
         else:
             result = _run_standard_model(
                 model_id, frame, target, feature_columns, task, train_pct, seed, request.get("params", {}),
-                chronological=has_time_series, date_column=date_column,
             )
         results.append(result)
     progress(92, "Preparing charts and comparison summary")
@@ -983,11 +861,6 @@ def compare_models(
             "Rows with a missing target are excluded",
             "Numeric feature gaps use the median and numeric features are standardized",
             "Categorical gaps use the most common value and categories are one-hot encoded",
-            "The original uploaded dataset is not overwritten",
-        ] if not has_time_series else [
-            "Rows are ordered chronologically using the selected date/time column",
-            "Rows with an invalid date or missing target are excluded",
-            "Regression models and ARIMA use the same earlier-train/later-test boundary",
             "The original uploaded dataset is not overwritten",
         ],
         "created_at": utc_now(),
@@ -1249,7 +1122,7 @@ def join_frames(
     return merged, removed
 
 
-ALLOWED_IMPORTS = {"numpy", "pandas", "sklearn", "statsmodels", "math", "statistics"}
+ALLOWED_IMPORTS = {"numpy", "pandas", "sklearn", "math", "statistics"}
 BANNED_NAMES = {
     "open", "exec", "eval", "compile", "__import__", "input", "breakpoint",
     "globals", "locals", "vars", "getattr", "setattr", "delattr", "memoryview",
@@ -1310,7 +1183,7 @@ def custom_model_rules() -> list[str]:
     return [
         "Custom Python models run only on this computer and are marked as trusted local code.",
         "The code must define build_model(params). Predictive models return an estimator with fit and predict methods; clustering models may use fit_predict.",
-        "Only NumPy, Pandas, scikit-learn, statsmodels, math, and statistics imports are accepted.",
+        "Only NumPy, Pandas, scikit-learn, math, and statistics imports are accepted.",
         "File access, network access, operating-system commands, subprocesses, and dynamic code execution are blocked.",
         "Each parameter must declare a name, type, default value, description, and optional numeric limits.",
         "Custom execution uses a separate process with a time limit; this reduces risk but is not a secure public-hosting sandbox.",

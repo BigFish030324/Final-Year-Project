@@ -23,12 +23,12 @@ If startup fails, read the message printed by `run.py`. Common causes are Python
 ## Main workflow
 
 1. Select the visible train/test split.
-2. Upload a `.csv` or `.xlsx` dataset (maximum 1,000 MB).
+2. Upload a local `.csv` or `.xlsx` dataset, or paste a public Kaggle dataset page link. Kaggle imports choose the largest non-empty CSV/XLSX file that passes the 1,000 MB file limit.
 3. Review the automatic target and task explanation, then override the target or exclude noise columns if needed.
 4. Drag or click one or two compatible models. Small jobs run automatically; longer jobs ask whether to use sampled, chunked-profile, or full processing.
 5. Follow progress in the terminal-style panel and export the completed result as PDF, PNG, or XLSX.
 
-The ten built-in models are Linear Regression, Decision Tree, Random Forest, Naive Bayes, Logistic Regression, Neural Network, ARIMA, K-Nearest Neighbours, Gradient Boosting, and K-Means.
+The six built-in models are Decision Tree and Logistic Regression for classification, Linear Regression and Random Forest for regression, and K-Means and Agglomerative Clustering for clustering.
 
 ## Data cleaning
 
@@ -53,6 +53,6 @@ Registering a website account is runtime activity, not a source-code upload. It 
 
 ## Trusted local custom Python models
 
-Custom models must define `build_model(params)` and return an estimator with `fit` and `predict` methods. Only NumPy, Pandas, scikit-learn, statsmodels, `math`, and `statistics` imports are accepted. Obvious file, network, operating-system, subprocess, and dynamic-code operations are blocked. Execution occurs in a separate process with a 45-second limit.
+Custom models must define `build_model(params)` and return an estimator with `fit` and `predict` methods. Only NumPy, Pandas, scikit-learn, `math`, and `statistics` imports are accepted. Obvious file, network, operating-system, subprocess, and dynamic-code operations are blocked. Execution occurs in a separate process with a 45-second limit.
 
 This reduces accidental risk but is not a secure sandbox for untrusted public users. Keep the feature local, never paste secrets into model code, and use a container-grade isolation service before any public deployment.

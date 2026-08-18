@@ -198,7 +198,6 @@
         });
         $("#column-picker-button").addEventListener("click", showColumnPicker);
         $("#target-select").addEventListener("change", updateDatasetChoices);
-        $("#date-select").addEventListener("change", updateDatasetChoices);
         $("#model-search").addEventListener("input", renderModelShelf);
         $("#model-category").addEventListener("change", renderModelShelf);
         $("#export-button").addEventListener("click", showExportModal);
@@ -208,8 +207,10 @@
         $("#recommend-models").addEventListener("click", recommendStarterModels);
         if (window.ResizeObserver) new ResizeObserver(syncFixedPanelSpacing).observe($("#model-dock"));
         window.addEventListener("resize", syncFixedPanelSpacing);
-        requestAnimationFrame(syncFixedPanelSpacing);
-        if (window.matchMedia("(max-width: 1080px)").matches) toggleParametersPanel();
+        requestAnimationFrame(() => {
+            syncFixedPanelSpacing();
+            requestAnimationFrame(() => $(".comparison-workspace")?.classList.add("comparison-ready"));
+        });
 
         if (state.dataset) renderDataset(state.dataset);
         await loadModels();
@@ -401,7 +402,6 @@
         ];
         $("#dataset-stats").innerHTML = stats.map(([label, value]) => `<div class="stat-item"><span>${escapeHtml(label)}</span><strong title="${escapeHtml(value)}">${escapeHtml(value)}</strong></div>`).join("");
         $("#target-select").innerHTML = dataset.column_names.map(name => `<option value="${escapeHtml(name)}" ${name === dataset.target ? "selected" : ""}>${escapeHtml(name)}</option>`).join("");
-        $("#date-select").innerHTML = `<option value="">Not selected</option>` + dataset.datetime_columns.map(name => `<option value="${escapeHtml(name)}" ${name === dataset.date_column ? "selected" : ""}>${escapeHtml(name)}</option>`).join("");
         $("#target-explanation").innerHTML = `<strong>${dataset.target_confidence === "manual" ? "Manual target" : `${titleCase(dataset.target_confidence)}-confidence suggestion`}: ${escapeHtml(dataset.target)}</strong><br>${escapeHtml(dataset.target_reason)}. ${escapeHtml(dataset.task_reason)}`;
         if ($("#recommend-models")) $("#recommend-models").disabled = dataset.task === "unknown";
         const visibleColumns = (dataset.selected_columns || dataset.column_names).filter(name => dataset.column_names.includes(name));
@@ -424,7 +424,7 @@
         try {
             const response = await api(`/api/datasets/${state.dataset.id}`, {
                 method: "PATCH",
-                body: { target: $("#target-select").value, date_column: $("#date-select").value || null },
+                body: { target: $("#target-select").value },
             });
             state.dataset = response.dataset;
             renderDataset(state.dataset);
@@ -467,8 +467,11 @@
                         if (Array.isArray(schema.choices) && !schema.choices.map(String).includes(String(params[schema.name]))) params[schema.name] = fresh.defaults?.[schema.name];
                     });
                     state.slots[key] = { ...fresh, params };
-                }
+                } else state.slots[key] = null;
             }
+        }
+        if (!state.activeSlot || !state.slots[state.activeSlot]) {
+            state.activeSlot = state.slots.a ? "a" : state.slots.b ? "b" : null;
         }
         renderModelShelf();
     }
@@ -657,9 +660,8 @@
             return;
         }
         if (selectedModels().some(model => model.compatible === false)) { updateComparisonNotice("Replace incompatible models before running."); return; }
-        const hasTimeSeries = selectedModels().some(model => model.id === "arima" || model.tasks.includes("time_series"));
-        const tasks = selectedModels().map(model => model.id === "kmeans" || model.tasks.includes("clustering") ? "clustering" : (model.id === "arima" || model.tasks.includes("time_series") || (hasTimeSeries && state.dataset.task === "regression" && model.tasks.includes("regression"))) ? "time_series" : state.dataset.task);
-        if (new Set(tasks).size > 1) { updateComparisonNotice("These models solve different task types. Compare K-Means or ARIMA only with a compatible model."); return; }
+        const tasks = selectedModels().map(model => model.tasks.includes("clustering") ? "clustering" : state.dataset.task);
+        if (new Set(tasks).size > 1) { updateComparisonNotice("These models solve different task types. Compare models from the same category."); return; }
         runDebounce = setTimeout(() => runPreflight(showGuidedBudgetChoice), 450);
     }
 
@@ -1203,7 +1205,7 @@
         if (!select) return;
         const customTags = [...new Set(state.models.filter(model => model.id.startsWith("custom:")).map(model => model.task_label).filter(Boolean))]
             .sort((a, b) => a.localeCompare(b));
-        select.innerHTML = `<option value="all">All Model Types</option><option value="classification">Classification</option><option value="regression">Regression</option><option value="time_series">Time Series</option><option value="clustering">Clustering</option><option value="custom">Custom Model</option>${customTags.map(tag => `<option value="tag:${escapeHtml(tag)}">${escapeHtml(tag)}</option>`).join("")}`;
+        select.innerHTML = `<option value="all">All Model Types</option><option value="classification">Classification</option><option value="regression">Regression</option><option value="clustering">Clustering</option><option value="custom">Custom Model</option>${customTags.map(tag => `<option value="tag:${escapeHtml(tag)}">${escapeHtml(tag)}</option>`).join("")}`;
     }
 
     function renderLibrary() {
@@ -1215,7 +1217,7 @@
             const matchesType = task === "all" || (task === "custom" && isCustom) || (task.startsWith("tag:") && isCustom && model.task_label === task.slice(4)) || model.tasks.includes(task);
             return matchesQuery && matchesType;
         });
-        $("#library-grid").innerHTML = items.map(model => { const isCustom = model.id.startsWith("custom:"); const tags = isCustom ? `<span class="task-tag user-model-tag">Custom Model</span>${model.task_label ? `<span class="task-tag">${escapeHtml(model.task_label)}</span>` : ""}` : model.tasks.map(item => `<span class="task-tag">${escapeHtml(titleCase(item))}</span>`).join(""); return `<article class="card library-card"><div class="library-card-head"><div><span class="family">${escapeHtml(model.family)}</span><h2>${escapeHtml(model.name)}</h2></div><button class="info-button" data-tooltip="${escapeHtml(model.summary)}">i</button></div><div class="task-tags">${tags}</div><p>${escapeHtml(model.summary)}</p><div class="best-box" tabindex="0" title="Scroll to read the full use case"><strong>Best Used When</strong><br>${escapeHtml(model.best_for)}</div><div class="library-card-actions"><button class="button secondary small use-library-model" data-library-model="${escapeHtml(model.id)}">Use in Comparison</button>${isCustom ? `<a class="button ghost small" href="/custom-models#saved-models">Manage Model</a>` : ""}</div></article>`; }).join("");
+        $("#library-grid").innerHTML = items.map(model => { const isCustom = model.id.startsWith("custom:"); const tags = isCustom ? `<span class="task-tag user-model-tag">Custom Model</span>${model.task_label ? `<span class="task-tag">${escapeHtml(model.task_label)}</span>` : ""}` : model.tasks.map(item => `<span class="task-tag">${escapeHtml(titleCase(item))}</span>`).join(""); return `<article class="card library-card"><div class="library-card-head"><div><span class="family">${escapeHtml(model.family)}</span><h2>${escapeHtml(model.name)}</h2></div></div><div class="task-tags">${tags}</div><p>${escapeHtml(model.summary)}</p><div class="best-box" tabindex="0" title="Scroll to read the full use case"><strong>Best Used When</strong><br>${escapeHtml(model.best_for)}</div><div class="library-card-actions"><button class="button secondary small use-library-model" data-library-model="${escapeHtml(model.id)}">Use in Comparison</button>${isCustom ? `<a class="button ghost small" href="/custom-models#saved-models">Manage Model</a>` : ""}</div></article>`; }).join("");
         $$('.use-library-model').forEach(button => button.addEventListener("click", () => { localStorage.setItem("pendingModel", button.dataset.libraryModel); location.href = "/comparison"; }));
     }
 
@@ -1270,7 +1272,6 @@
     function inferCustomTask(tag) {
         const value = String(tag || "").toLowerCase();
         if (/cluster|segment|group/.test(value)) return "clustering";
-        if (/time|forecast|series|sequence|arima/.test(value)) return "time_series";
         if (/regress|regular|numeric|continuous|number/.test(value)) return "regression";
         return "classification";
     }
@@ -1346,7 +1347,7 @@
         }
         const suggestions = $("#model-tag-suggestions");
         if (suggestions) {
-            const defaults = ["Classification", "Regression", "Regularised Regression", "Time Series", "Clustering", "Recommendation", "Anomaly Detection"];
+            const defaults = ["Classification", "Regression", "Regularised Regression", "Clustering", "Recommendation", "Anomaly Detection"];
             const tags = [...new Set([...defaults, ...response.models.map(model => model.task_label).filter(Boolean)])];
             suggestions.innerHTML = tags.map(tag => `<option value="${escapeHtml(tag)}"></option>`).join("");
         }
