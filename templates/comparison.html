@@ -19,22 +19,32 @@ Upload a dataset, choose models and review their results in the main workspace.
 
     <div class="comparison-page-grid">
         <div class="comparison-primary">
-            <div class="section-heading">
-                <div><span class="step-number">1</span><div><h2 id="split-title">Train / Test Split <button class="info-button" data-tooltip="Models learn from the training rows and are evaluated on separate testing rows. Every compared model receives the same split.">i</button></h2><p>This required step keeps every model comparison fair.</p></div></div>
-            </div>
-            <section class="split-panel card" aria-labelledby="split-title">
-                <div class="split-editor">
-                    <label class="percentage-field"><span>Training Data</span><span class="percentage-input"><input type="number" id="train-percent-input" min="0" max="100" value="70" inputmode="numeric"><strong>%</strong></span></label>
-                    <div class="split-track-wrap">
-                        <div class="split-visual" aria-hidden="true"><span id="train-bar" style="width:70%">Train 70%</span><span id="test-bar" style="width:30%">Test 30%</span><span class="split-divider" id="split-divider">|</span></div>
-                        <input type="range" id="train-pct" min="0" max="100" value="70" aria-label="Training data percentage">
-                    </div>
-                    <label class="percentage-field"><span>Testing Data</span><span class="percentage-input"><input type="number" id="test-percent-input" min="0" max="100" value="30" inputmode="numeric"><strong>%</strong></span></label>
+            <!-- --------------------
+            Comparison - Train / Test Split
+            Keep the step title and percentage controls inside one rounded section.
+            -------------------- -->
+            <section class="comparison-step comparison-split-step" aria-labelledby="split-title">
+                <div class="section-heading">
+                    <div><span class="step-number">1</span><div><h2 id="split-title">Train / Test Split <button class="info-button" data-tooltip="Models learn from the training rows and are evaluated on separate testing rows. Every compared model receives the same split.">i</button></h2><p>This required step keeps every model comparison fair.</p></div></div>
                 </div>
-                <p class="split-warning hidden" id="split-warning" role="status"></p>
+                <div class="split-panel">
+                    <div class="split-editor">
+                        <label class="percentage-field"><span>Training Data</span><span class="percentage-input"><input type="number" id="train-percent-input" min="0" max="100" value="70" inputmode="numeric"><strong>%</strong></span></label>
+                        <div class="split-track-wrap">
+                            <div class="split-visual" aria-hidden="true"><span id="train-bar" style="width:70%">Train 70%</span><span id="test-bar" style="width:30%">Test 30%</span><span class="split-divider" id="split-divider">|</span></div>
+                            <input type="range" id="train-pct" min="0" max="100" value="70" aria-label="Training data percentage">
+                        </div>
+                        <label class="percentage-field"><span>Testing Data</span><span class="percentage-input"><input type="number" id="test-percent-input" min="0" max="100" value="30" inputmode="numeric"><strong>%</strong></span></label>
+                    </div>
+                    <p class="split-warning hidden" id="split-warning" role="status"></p>
+                </div>
             </section>
 
-            <section class="dataset-stage">
+            <!-- --------------------
+            Comparison - Upload and Investigate a Dataset
+            Keep every dataset input and investigation result inside the second rounded section.
+            -------------------- -->
+            <section class="comparison-step dataset-stage">
                 <div class="section-heading">
                     <div><span class="step-number">2</span><div><h2>Upload and Investigate a Dataset <button class="info-button" data-tooltip="CSV and XLSX files are inspected before modelling. JSON is intentionally not accepted.">i</button></h2><p>The target is suggested automatically, but you remain in control.</p></div></div>
                 </div>
@@ -79,7 +89,11 @@ Upload a dataset, choose models and review their results in the main workspace.
                 </article>
             </section>
 
-            <section class="comparison-stage">
+            <!-- --------------------
+            Comparison - Choose One or Two Models
+            Keep model guidance, selection slots and comparison results inside the third rounded section.
+            -------------------- -->
+            <section class="comparison-step comparison-stage">
                 <div class="section-heading">
                     <div><span class="step-number">3</span><div><h2>Choose One or Two Models <button class="info-button" data-tooltip="Drag models from the shelf below. Incompatible models remain visible so you can learn why they do not fit the current task.">i</button></h2><p>Results run automatically when a usable dataset and compatible model are ready.</p></div></div>
                 </div>
