@@ -32,7 +32,7 @@ Display the same navigation, account details and common webpage structure on eve
                 <a href="{{ url_for('comparison') }}" class="nav-link {% if active_tab == 'comparison' %}active{% endif %}"><span class="nav-icon">⇄</span><span>Comparison</span></a>
                 <a href="{{ url_for('cleaning') }}" class="nav-link {% if active_tab == 'cleaning' %}active{% endif %}"><span class="nav-icon">✦</span><span>Data Cleaning</span></a>
                 <a href="{{ url_for('libraries') }}" class="nav-link {% if active_tab == 'libraries' %}active{% endif %}"><span class="nav-icon">▦</span><span>Model Library</span></a>
-                <a href="{{ url_for('custom_models') }}" class="nav-link {% if active_tab == 'custom_models' %}active{% endif %}"><span class="nav-icon">&lt;/&gt;</span><span>Custom Models</span></a>
+                <a href="{{ url_for('custom_models') }}" class="nav-link {% if active_tab == 'custom_models' %}active{% endif %}"><span class="nav-icon custom-models-navigation-icon">&lt;/&gt;</span><span>Custom Models</span></a>
                 <a href="{{ url_for('history') }}" class="nav-link {% if active_tab == 'history' %}active{% endif %}"><span class="nav-icon">↺</span><span>History</span></a>
             </nav>
             <div class="sidebar-bottom">
