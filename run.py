@@ -24,7 +24,6 @@ REQUIRED_IMPORTS = (
     "openpyxl",
     "reportlab",
     "PIL",
-    "kagglehub",
 )
 
 

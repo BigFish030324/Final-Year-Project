@@ -9,17 +9,19 @@ import json
 import os
 import re
 import secrets
-import shutil
 import subprocess
 import sys
 import tempfile
 import threading
 import traceback
 import uuid
+import zipfile
 from functools import wraps
 from pathlib import Path
 from typing import Any
+from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
+from urllib.request import Request, urlopen
 
 
 # --------------------
@@ -233,70 +235,109 @@ def kaggle_dataset_handle(dataset_url: str) -> str:
     return f"{owner}/{dataset_name}"
 
 
-def import_kaggle_dataset(dataset_url: str) -> dict[str, Any]:
-    handle = kaggle_dataset_handle(dataset_url)
+def download_public_kaggle_archive(handle: str, archive_path: Path) -> None:
+    owner, dataset_name = handle.split("/", 1)
+    download_url = f"https://www.kaggle.com/api/v1/datasets/download/{owner}/{dataset_name}"
+    download_request = Request(
+        download_url,
+        headers={
+            "Accept": "application/zip, application/octet-stream",
+            "User-Agent": "DataComparison-FYP/1.0",
+        },
+    )
+
     try:
-        import kagglehub
-    except ImportError as error:
+        with urlopen(download_request, timeout=60) as response:
+            content_length = response.headers.get("Content-Length")
+            if content_length and int(content_length) > MAX_UPLOAD_BYTES:
+                raise UserFacingError("This Kaggle dataset download exceeds the 1,000 MB limit.")
+
+            downloaded_bytes = 0
+            with archive_path.open("wb") as archive_file:
+                while chunk := response.read(1024 * 1024):
+                    downloaded_bytes += len(chunk)
+                    if downloaded_bytes > MAX_UPLOAD_BYTES:
+                        raise UserFacingError("This Kaggle dataset download exceeds the 1,000 MB limit.")
+                    archive_file.write(chunk)
+    except UserFacingError:
+        raise
+    except HTTPError as error:
+        if error.code in {401, 403}:
+            raise UserFacingError(
+                "Kaggle did not allow this download. Use a public dataset that does not require permission."
+            ) from error
+        if error.code == 404:
+            raise UserFacingError("This public Kaggle dataset could not be found.") from error
+        raise UserFacingError("Kaggle could not complete the dataset download. Try again shortly.") from error
+    except (URLError, TimeoutError, OSError, ValueError) as error:
         raise UserFacingError(
-            "Kaggle importing is not installed yet. Run 'python -m pip install -r requirements.txt' and restart the website."
+            "The website could not connect to Kaggle. Check the internet connection and try again."
         ) from error
 
+
+def copy_kaggle_file(archive: zipfile.ZipFile, member: zipfile.ZipInfo, destination: Path) -> None:
+    copied_bytes = 0
+    try:
+        with archive.open(member, "r") as source_file, destination.open("wb") as destination_file:
+            while chunk := source_file.read(1024 * 1024):
+                copied_bytes += len(chunk)
+                if copied_bytes > MAX_UPLOAD_BYTES:
+                    raise UserFacingError("The selected Kaggle data file exceeds the 1,000 MB limit.")
+                destination_file.write(chunk)
+    except UserFacingError:
+        destination.unlink(missing_ok=True)
+        raise
+    except (OSError, RuntimeError, zipfile.BadZipFile) as error:
+        destination.unlink(missing_ok=True)
+        raise UserFacingError("A data file inside the Kaggle download could not be opened safely.") from error
+
+
+def import_kaggle_dataset(dataset_url: str) -> dict[str, Any]:
+    handle = kaggle_dataset_handle(dataset_url)
     upload_directory = user_upload_dir()
     with tempfile.TemporaryDirectory(prefix="kaggle_import_", dir=upload_directory) as temporary:
+        archive_path = Path(temporary) / "dataset.zip"
+        download_public_kaggle_archive(handle, archive_path)
+
         try:
-            downloaded = Path(kagglehub.dataset_download(
-                handle,
-                output_dir=temporary,
-                force_download=True,
-            ))
-        except Exception as error:
-            message = str(error).lower()
-            if "401" in message or "403" in message or "permission" in message or "credential" in message:
-                raise UserFacingError(
-                    "Kaggle did not allow this download. Use a public dataset that does not require account permission."
-                ) from error
-            raise UserFacingError(
-                "The Kaggle dataset could not be downloaded. Check that the public dataset link still exists and try again."
-            ) from error
+            with zipfile.ZipFile(archive_path) as archive:
+                supported_files = [
+                    member for member in archive.infolist()
+                    if not member.is_dir()
+                    and Path(member.filename).suffix.lower() in {".csv", ".xlsx"}
+                    and 0 < member.file_size <= MAX_UPLOAD_BYTES
+                ]
+                if not supported_files:
+                    raise UserFacingError("This Kaggle dataset has no non-empty CSV or XLSX file to investigate.")
 
-        search_root = downloaded if downloaded.is_dir() else downloaded.parent
-        downloaded_files = list(search_root.rglob("*")) if downloaded.is_dir() else [downloaded]
-        supported_files = [
-            path for path in downloaded_files
-            if path.is_file() and path.suffix.lower() in {".csv", ".xlsx"} and path.stat().st_size > 0
-        ]
-        if not supported_files:
-            raise UserFacingError("This Kaggle dataset has no non-empty CSV or XLSX file to investigate.")
-
-        allowed_files = [path for path in supported_files if path.stat().st_size <= MAX_UPLOAD_BYTES]
-        if not allowed_files:
-            raise UserFacingError("The CSV or XLSX files in this Kaggle dataset exceed the 1,000 MB limit.")
-
-        first_dataset_error: str | None = None
-        for source_path in sorted(allowed_files, key=lambda path: path.stat().st_size, reverse=True):
-            dataset_id = uuid.uuid4().hex
-            stored_path = upload_directory / f"{dataset_id}{source_path.suffix.lower()}"
-            shutil.copy2(source_path, stored_path)
-            try:
-                metadata = profile_dataset(
-                    stored_path,
-                    original_name=source_path.name,
-                    dataset_id=dataset_id,
-                )
-            except UserFacingError as error:
-                stored_path.unlink(missing_ok=True)
-                first_dataset_error = first_dataset_error or str(error)
-                continue
-            metadata.update({
-                "source_type": "kaggle",
-                "source_url": f"https://www.kaggle.com/datasets/{handle}",
-                "kaggle_handle": handle,
-                "kaggle_file": source_path.relative_to(search_root).as_posix(),
-            })
-            save_metadata(metadata)
-            session["active_dataset_id"] = dataset_id
-            return metadata
+                first_dataset_error: str | None = None
+                for source_file in sorted(supported_files, key=lambda member: member.file_size, reverse=True):
+                    dataset_id = uuid.uuid4().hex
+                    suffix = Path(source_file.filename).suffix.lower()
+                    stored_path = upload_directory / f"{dataset_id}{suffix}"
+                    copy_kaggle_file(archive, source_file, stored_path)
+                    original_name = Path(source_file.filename.replace("\\", "/")).name
+                    try:
+                        metadata = profile_dataset(
+                            stored_path,
+                            original_name=original_name,
+                            dataset_id=dataset_id,
+                        )
+                    except UserFacingError as error:
+                        stored_path.unlink(missing_ok=True)
+                        first_dataset_error = first_dataset_error or str(error)
+                        continue
+                    metadata.update({
+                        "source_type": "kaggle",
+                        "source_url": f"https://www.kaggle.com/datasets/{handle}",
+                        "kaggle_handle": handle,
+                        "kaggle_file": source_file.filename,
+                    })
+                    save_metadata(metadata)
+                    session["active_dataset_id"] = dataset_id
+                    return metadata
+        except zipfile.BadZipFile as error:
+            raise UserFacingError("Kaggle returned a download that is not a valid dataset archive.") from error
 
     raise UserFacingError(
         first_dataset_error or "The Kaggle dataset files could not be read as usable tabular data."
@@ -416,9 +457,13 @@ def handle_user_error(error):
 
 @app.context_processor
 def inject_globals():
+    username = current_user()
+    saved_settings = load_json(SETTINGS_FILE, {}).get(username.lower(), {}) if username else {}
+    saved_theme = saved_settings.get("theme", "light")
     return {
-        "current_user": current_user(),
+        "current_user": username,
         "current_account_name": public_username(),
+        "current_theme": saved_theme if saved_theme in {"light", "dark"} else "light",
         "model_catalog": MODEL_CATALOG,
     }
 

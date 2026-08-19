@@ -27,7 +27,7 @@ Create a cleaned copy of a dataset without overwriting the original uploaded fil
 
         <section class="cleaning-main">
             <article class="card source-card">
-                <div class="section-heading compact"><div><div><h2>Original Dataset <button class="info-button" data-tooltip="Cleaning never overwrites this file. A separate cleaned copy is produced.">i</button></h2><p id="cleaning-source-copy">Select or upload a dataset.</p></div></div><div class="source-actions"><button class="button danger small" id="delete-cleaning-dataset" disabled>Delete Dataset</button><button class="button danger small" id="delete-all-cleaning-datasets" disabled>Delete All Datasets</button><button class="button secondary small" id="cleaning-upload-button">Upload Another</button></div></div>
+                <div class="section-heading compact"><div><div><h2>Original Dataset <button class="info-button" data-tooltip="Cleaning never overwrites this file. A separate cleaned copy is produced." aria-label="Explain Original Dataset"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 11v5M12 8h.01"/></svg></button></h2><p id="cleaning-source-copy">Select or upload a dataset.</p></div></div><div class="source-actions"><button class="button danger small" id="delete-cleaning-dataset" disabled>Delete Dataset</button><button class="button danger small" id="delete-all-cleaning-datasets" disabled>Delete All Datasets</button><button class="button secondary small" id="cleaning-upload-button">Upload Another</button></div></div>
                 <input type="file" id="cleaning-upload" accept=".csv,.xlsx" hidden>
                 <select id="cleaning-dataset-select"><option value="">Loading datasets…</option></select>
                 <div class="stat-grid compact-stats" id="cleaning-source-stats"></div>
@@ -68,10 +68,9 @@ def clean_data(df):
             </article>
 
             <article class="card output-card hidden" id="cleaning-output">
-                <div class="success-mark">✓</div><div><h2>New Dataset Created</h2><p id="cleaning-result-message"></p><div class="button-row"><a class="button secondary" id="download-cleaned-csv">Download CSV</a><a class="button secondary" id="download-cleaned-xlsx">Download XLSX</a><button class="button primary" id="send-cleaned-comparison">Send to Comparison</button></div></div>
+                <div class="success-mark"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></div><div><h2>New Dataset Created</h2><p id="cleaning-result-message"></p><div class="button-row"><a class="button secondary" id="download-cleaned-csv">Download CSV</a><a class="button secondary" id="download-cleaned-xlsx">Download XLSX</a><button class="button primary" id="send-cleaned-comparison">Send to Comparison</button></div></div>
             </article>
         </section>
     </div>
 </div>
 {% endblock %}
-

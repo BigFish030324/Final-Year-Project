@@ -8,7 +8,7 @@ Allow a student to create a local account or sign in before using the website.
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ 'Create Account' if mode == 'register' else 'Sign In' }} · DataComparison</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/website_styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/website_styles.css', v='20260819-expanded-equal-matrix-1') }}">
 </head>
 <body class="auth-page">
     <main class="auth-shell">
@@ -34,13 +34,13 @@ Allow a student to create a local account or sign in before using the website.
             <h1>Understand Your Data Before Choosing a Model.</h1>
             <p>Upload structured data, investigate its quality, clean it, and compare models through one beginner-friendly workflow.</p>
             <div class="auth-points">
-                <span>✓ Local-first dataset storage</span>
-                <span>✓ Transparent automatic suggestions</span>
-                <span>✓ Fair train/test comparisons</span>
+                <span><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>Local-first dataset storage</span>
+                <span><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>Transparent automatic suggestions</span>
+                <span><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>Fair train/test comparisons</span>
             </div>
         </section>
     </main>
-    <script src="{{ url_for('static', filename='js/website_controller.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/website_controller.js', v='20260819-centred-cluster-labels-1') }}"></script>
 </body>
 </html>
 

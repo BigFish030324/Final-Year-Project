@@ -56,11 +56,15 @@
         const modal = $("#global-modal");
         $("#modal-content").innerHTML = html;
         modal.classList.toggle("no-close", options.hideClose === true);
+        modal.classList.toggle("cross-only-close", options.closeWithCrossOnly === true);
+        modal.classList.toggle("chart-fullscreen-modal", options.chartFullscreen === true);
         modal.classList.remove("hidden");
     }
 
     function closeModal() {
-        $("#global-modal")?.classList.add("hidden");
+        const modal = $("#global-modal");
+        modal?.classList.add("hidden");
+        modal?.classList.remove("cross-only-close", "chart-fullscreen-modal");
     }
 
     function formatNumber(value, digits = 4) {
@@ -106,6 +110,7 @@
     }
 
     function bindGlobalUI() {
+        bindFloatingTooltips();
         $("#sidebar-toggle")?.addEventListener("click", () => $("#sidebar")?.classList.toggle("open"));
         const shell = $(".app-shell");
         const collapseButton = $("#sidebar-collapse");
@@ -135,9 +140,15 @@
             $("#confirm-sign-out").addEventListener("click", () => { location.href = destination; });
         }));
         $("#global-modal")?.addEventListener("click", event => {
+            if (event.currentTarget.classList.contains("cross-only-close")) {
+                if (event.target.closest(".modal-close[data-close-modal]")) closeModal();
+                return;
+            }
             if (event.target.id === "global-modal" || event.target.closest("[data-close-modal]")) closeModal();
         });
-        document.addEventListener("keydown", event => { if (event.key === "Escape") closeModal(); });
+        document.addEventListener("keydown", event => {
+            if (event.key === "Escape" && !$("#global-modal")?.classList.contains("cross-only-close")) closeModal();
+        });
         $("#console-toggle")?.addEventListener("click", () => $("#progress-console")?.classList.toggle("collapsed"));
         $$('[data-password-toggle]').forEach(button => button.addEventListener("click", () => {
             const input = button.closest(".password-field")?.querySelector("input");
@@ -148,6 +159,66 @@
             button.title = showing ? "Show password" : "Hide password";
             button.classList.toggle("showing", !showing);
         }));
+    }
+
+    // --------------------
+    // Website Tooltips
+    // Display every explanation above fixed panels without being cut by its parent box.
+    // --------------------
+    function bindFloatingTooltips() {
+        const tooltip = document.createElement("div");
+        tooltip.id = "floating-tooltip";
+        tooltip.className = "floating-tooltip";
+        tooltip.setAttribute("role", "tooltip");
+        document.body.appendChild(tooltip);
+        let activeTarget = null;
+
+        const hideTooltip = () => {
+            if (activeTarget?.getAttribute("aria-describedby") === tooltip.id) activeTarget.removeAttribute("aria-describedby");
+            activeTarget = null;
+            tooltip.classList.remove("visible");
+        };
+
+        const positionTooltip = () => {
+            if (!activeTarget || !tooltip.classList.contains("visible")) return;
+            const targetBox = activeTarget.getBoundingClientRect();
+            const tooltipBox = tooltip.getBoundingClientRect();
+            const pageGap = 10;
+            let left = targetBox.left + targetBox.width / 2 - tooltipBox.width / 2;
+            left = Math.max(pageGap, Math.min(left, window.innerWidth - tooltipBox.width - pageGap));
+            let top = targetBox.top - tooltipBox.height - 9;
+            if (top < pageGap) top = targetBox.bottom + 9;
+            top = Math.max(pageGap, Math.min(top, window.innerHeight - tooltipBox.height - pageGap));
+            tooltip.style.left = `${Math.round(left)}px`;
+            tooltip.style.top = `${Math.round(top)}px`;
+        };
+
+        const showTooltip = target => {
+            if (!target?.dataset.tooltip || document.documentElement.dataset.tooltips === "off") return;
+            if (target.hasAttribute("title")) target.removeAttribute("title");
+            activeTarget = target;
+            tooltip.textContent = target.dataset.tooltip;
+            target.setAttribute("aria-describedby", tooltip.id);
+            tooltip.classList.add("visible");
+            positionTooltip();
+        };
+
+        document.addEventListener("pointerover", event => {
+            const target = event.target.closest("[data-tooltip]");
+            if (target && target !== activeTarget) showTooltip(target);
+        });
+        document.addEventListener("pointerout", event => {
+            if (activeTarget && !activeTarget.contains(event.relatedTarget)) hideTooltip();
+        });
+        document.addEventListener("focusin", event => {
+            const target = event.target.closest("[data-tooltip]");
+            if (target) showTooltip(target);
+        });
+        document.addEventListener("focusout", event => {
+            if (activeTarget && !activeTarget.contains(event.relatedTarget)) hideTooltip();
+        });
+        document.addEventListener("scroll", positionTooltip, true);
+        window.addEventListener("resize", positionTooltip);
     }
 
     function uploadFile(file, { onProgress } = {}) {
@@ -393,14 +464,28 @@
         $("#dataset-card").classList.remove("hidden");
         $("#dataset-name").textContent = dataset.filename;
         $("#dataset-status").textContent = `${dataset.task === "unknown" ? "Target needs attention" : titleCase(dataset.task)} · ${dataset.profile_seconds}s profiling`;
+        const missingCells = Number(dataset.missing_cells || 0);
+        const inspectedCells = Number(dataset.inspected_cells || (Number(dataset.profiled_rows || dataset.rows) * Number(dataset.columns))) || 0;
+        const fileSizeBytes = Number(dataset.size_bytes || 0);
+        const fileSizeText = fileSizeBytes < 1_000_000
+            ? `${formatNumber(fileSizeBytes / 1_000, 2)} KB`
+            : `${formatNumber(fileSizeBytes / 1_000_000, 2)} MB`;
         const stats = [
-            ["File size", `${formatNumber(dataset.size_mb, 2)} MB`],
-            ["Rows", Number(dataset.rows).toLocaleString()],
-            ["Columns", Number(dataset.columns).toLocaleString()],
-            ["Missing cells", `${Number(dataset.missing_cells).toLocaleString()} (${dataset.missing_pct}%)`],
-            ["Duplicate rows", Number(dataset.duplicate_rows).toLocaleString()],
+            { label: "File size", value: fileSizeText },
+            { label: "Rows", value: Number(dataset.rows).toLocaleString() },
+            { label: "Columns", value: Number(dataset.columns).toLocaleString() },
+            {
+                label: "Missing cells",
+                value: `${missingCells.toLocaleString()} / ${inspectedCells.toLocaleString()}`,
+                note: `${dataset.missing_pct}% missing rate`,
+                className: "dataset-missing-cells-statistic",
+            },
+            { label: "Duplicate rows", value: Number(dataset.duplicate_rows).toLocaleString() },
         ];
-        $("#dataset-stats").innerHTML = stats.map(([label, value]) => `<div class="stat-item"><span>${escapeHtml(label)}</span><strong title="${escapeHtml(value)}">${escapeHtml(value)}</strong></div>`).join("");
+        $("#dataset-stats").innerHTML = stats.map(stat => {
+            const fullValue = stat.note ? `${stat.value} (${stat.note})` : stat.value;
+            return `<div class="stat-item ${stat.className || ""}"><span>${escapeHtml(stat.label)}</span><strong title="${escapeHtml(fullValue)}">${escapeHtml(stat.value)}</strong>${stat.note ? `<small>${escapeHtml(stat.note)}</small>` : ""}</div>`;
+        }).join("");
         $("#target-select").innerHTML = dataset.column_names.map(name => `<option value="${escapeHtml(name)}" ${name === dataset.target ? "selected" : ""}>${escapeHtml(name)}</option>`).join("");
         $("#target-explanation").innerHTML = `<strong>${dataset.target_confidence === "manual" ? "Manual target" : `${titleCase(dataset.target_confidence)}-confidence suggestion`}: ${escapeHtml(dataset.target)}</strong><br>${escapeHtml(dataset.target_reason)}. ${escapeHtml(dataset.task_reason)}`;
         if ($("#recommend-models")) $("#recommend-models").disabled = dataset.task === "unknown";
@@ -507,12 +592,12 @@
         const category = $("#model-category")?.value || "all";
         const recentIds = JSON.parse(localStorage.getItem("recentModels") || "[]");
         const filtered = state.models.filter(model => {
-            const match = !query || [model.name, model.family, model.summary, model.best_for].join(" ").toLowerCase().includes(query);
+            const match = !query || [model.name, model.family, ...(model.tags || []), model.summary, model.best_for].join(" ").toLowerCase().includes(query);
             const group = category === "all" || (category === "custom" && model.id.startsWith("custom:")) || (category === "library" && !model.id.startsWith("custom:")) || (category === "recent" && recentIds.includes(model.id));
             return match && group;
         });
         if (category === "recent") filtered.sort((a, b) => recentIds.indexOf(a.id) - recentIds.indexOf(b.id));
-        list.innerHTML = filtered.length ? filtered.map(model => { const guidance = `${model.summary} Best for: ${model.best_for} ${model.compatibility_reason || ""}`; return `<article class="model-card ${model.compatible === false ? "incompatible" : ""}" draggable="${model.compatible !== false}" data-model-id="${escapeHtml(model.id)}" tabindex="0" title="${escapeHtml(guidance)}" data-tooltip="${escapeHtml(guidance)}"><span class="compatibility ${model.compatible === true ? "yes" : model.compatible === false ? "no" : ""}"></span><span class="family">${escapeHtml(model.family)}</span><h3>${escapeHtml(model.name)}</h3><p>${escapeHtml(model.summary)}</p><div class="best-for"><strong>Best For:</strong> ${escapeHtml(model.best_for)}</div></article>`; }).join("") : `<div class="empty-card">No models match this filter.</div>`;
+        list.innerHTML = filtered.length ? filtered.map(model => { const guidance = `${model.summary}\nBest for: ${model.best_for}`; const methodTags = (model.tags || []).map(tag => `<span class="model-method-tag">${escapeHtml(tag)}</span>`).join(""); return `<article class="model-card ${model.compatible === false ? "incompatible" : ""}" draggable="${model.compatible !== false}" data-model-id="${escapeHtml(model.id)}" tabindex="0" title="${escapeHtml(guidance)}" data-tooltip="${escapeHtml(guidance)}"><span class="compatibility ${model.compatible === true ? "yes" : model.compatible === false ? "no" : ""}"></span><div class="model-card-labels"><span class="family">${escapeHtml(model.family)}</span>${methodTags}</div><h3>${escapeHtml(model.name)}</h3><p>${escapeHtml(model.summary)}</p><div class="best-for"><strong>Best For:</strong> ${escapeHtml(model.best_for)}</div></article>`; }).join("") : `<div class="empty-card">No models match this filter.</div>`;
         $$(".model-card", list).forEach(card => {
             card.addEventListener("dragstart", event => event.dataTransfer.setData("text/model-id", card.dataset.modelId));
             card.addEventListener("click", () => chooseModel(card.dataset.modelId));
@@ -580,7 +665,7 @@
             slot.classList.toggle("selected", state.activeSlot === key);
             const warning = state.dataset && model.compatible === false ? model.compatibility_reason : null;
             const metricRows = result ? Object.entries(result.metrics).map(([name, value]) => `<div class="metric-row"><span>${escapeHtml(titleCase(name))}</span><strong>${escapeHtml(formatMetric(name, value))}</strong></div>`).join("") + `<div class="metric-row"><span>Training Time</span><strong>${formatNumber(result.training_seconds)} s</strong></div>` : `<div class="metric-row"><span>Parameters</span><strong>${Object.keys(model.params || {}).length} defaults</strong></div><div class="metric-row"><span>Status</span><strong>${warning ? "Waiting" : "Ready"}</strong></div>`;
-            slot.innerHTML = `<div class="model-result-head"><div><span class="family">${escapeHtml(model.family)}</span><h3>${escapeHtml(model.name)} <button class="info-button" data-tooltip="${escapeHtml(`${model.summary} Best for: ${model.best_for}`)}">i</button></h3><p>${escapeHtml(result ? `${titleCase(result.task)} Result` : model.compatibility_reason || "Waiting for data")}</p></div><div><span class="slot-badge">Model ${key.toUpperCase()}</span><button class="remove-model" data-remove-slot="${key}" aria-label="Remove model">×</button></div></div><div class="model-metrics">${metricRows}</div>${warning ? `<div class="slot-warning">${escapeHtml(warning)}</div>` : ""}`;
+            slot.innerHTML = `<div class="model-result-head"><div><span class="family">${escapeHtml(model.family)}</span><h3>${escapeHtml(model.name)} <button class="info-button" data-tooltip="${escapeHtml(`${model.summary}\nBest for: ${model.best_for}`)}" aria-label="Explain ${escapeHtml(model.name)}"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 11v5M12 8h.01"/></svg></button></h3><p>${escapeHtml(result ? `${titleCase(result.task)} Result` : model.compatibility_reason || "Waiting for data")}</p></div><div><span class="slot-badge">Model ${key.toUpperCase()}</span><button class="remove-model" data-remove-slot="${key}" aria-label="Remove model"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div></div><div class="model-metrics">${metricRows}</div>${warning ? `<div class="slot-warning">${escapeHtml(warning)}</div>` : ""}`;
         }
         $$('[data-remove-slot]').forEach(button => button.addEventListener("click", () => {
             const removed = button.dataset.removeSlot;
@@ -622,19 +707,37 @@
     }
 
     function applyParametersAndRun() {
-            const model = state.activeSlot ? state.slots[state.activeSlot] : null;
-            const root = $("#parameter-editor-panel");
-            if (!model || !root) return;
-            $$('[data-panel-param-name]', root).forEach(input => {
-                const name = input.dataset.panelParamName;
-                const original = model.params[name];
-                let value = input.value;
-                if (Array.isArray(original)) value = input.value.split(",").map(Number);
-                else if (["integer", "number"].includes(input.dataset.paramType) || typeof original === "number") value = Number(input.value);
-                else if (input.dataset.paramType === "boolean" || typeof original === "boolean") value = ["true", "1", "yes"].includes(input.value.toLowerCase());
-                model.params[name] = value;
-            });
-            toast(`${model.name} parameters updated.`); updateSlots(); maybeRunComparison();
+        const model = state.activeSlot ? state.slots[state.activeSlot] : null;
+        const root = $("#parameter-editor-panel");
+        if (!model || !root) return;
+        setParameterRunLoading(true);
+        $$('[data-panel-param-name]', root).forEach(input => {
+            const name = input.dataset.panelParamName;
+            const original = model.params[name];
+            let value = input.value;
+            if (Array.isArray(original)) value = input.value.split(",").map(Number);
+            else if (["integer", "number"].includes(input.dataset.paramType) || typeof original === "number") value = Number(input.value);
+            else if (input.dataset.paramType === "boolean" || typeof original === "boolean") value = ["true", "1", "yes"].includes(input.value.toLowerCase());
+            model.params[name] = value;
+        });
+        toast(`${model.name} parameters updated.`);
+        updateSlots();
+        maybeRunComparison();
+    }
+
+    // --------------------
+    // Parameter Run Button
+    // Show that the new model parameters are processing and prevent repeated runs.
+    // --------------------
+    function setParameterRunLoading(isLoading) {
+        const button = $("#apply-parameters");
+        if (!button) return;
+        button.disabled = isLoading;
+        button.classList.toggle("loading", isLoading);
+        button.setAttribute("aria-busy", String(isLoading));
+        button.innerHTML = isLoading
+            ? `<span class="button-loading-spinner" aria-hidden="true"></span><span>Running...</span>`
+            : "Run";
     }
 
     function selectedModels() { return [state.slots.a, state.slots.b].filter(Boolean); }
@@ -653,15 +756,31 @@
     let runDebounce;
     function maybeRunComparison(showGuidedBudgetChoice = false) {
         clearTimeout(runDebounce);
-        if (!state.dataset || !selectedModels().length) { updateComparisonNotice(); return; }
+        if (!state.dataset || !selectedModels().length) {
+            updateComparisonNotice();
+            setParameterRunLoading(false);
+            return;
+        }
         const trainPercentage = Number($("#train-pct").value);
         if (trainPercentage === 0 || trainPercentage === 100) {
             updateComparisonNotice("Choose at least 1% training data and 1% testing data before running models.");
+            setParameterRunLoading(false);
             return;
         }
-        if (selectedModels().some(model => model.compatible === false)) { updateComparisonNotice("Replace incompatible models before running."); return; }
+        if (selectedModels().some(model => model.compatible === false)) {
+            updateComparisonNotice("Replace incompatible models before running.");
+            setParameterRunLoading(false);
+            return;
+        }
         const tasks = selectedModels().map(model => model.tasks.includes("clustering") ? "clustering" : state.dataset.task);
-        if (new Set(tasks).size > 1) { updateComparisonNotice("These models solve different task types. Compare models from the same category."); return; }
+        if (new Set(tasks).size > 1) {
+            updateComparisonNotice(
+                "Both models solve different types of task. Compare same category models such as Classification vs Classification.\n" +
+                "A direct comparison is not fair because classification, regression and clustering use different outputs and evaluation metrics."
+            );
+            setParameterRunLoading(false);
+            return;
+        }
         runDebounce = setTimeout(() => runPreflight(showGuidedBudgetChoice), 450);
     }
 
@@ -676,7 +795,11 @@
                 logProgress(`Running directly with the current ${selected.label} budget: up to ${Number(selected.rows).toLocaleString()} rows.`);
                 startComparison(selected.id);
             }
-        } catch (error) { toast(error.message, "error"); logProgress(error.message); }
+        } catch (error) {
+            toast(error.message, "error");
+            logProgress(error.message);
+            setParameterRunLoading(false);
+        }
     }
 
     function showProcessingChoice(preflight) {
@@ -701,6 +824,7 @@
 
     async function startComparison(mode) {
         const models = selectedModels().map(model => ({ id: model.id, name: model.name, params: model.params }));
+        setParameterRunLoading(true);
         updateComparisonNotice("Processing is underway. Follow each stage in the progress console.");
         $("#console-status").textContent = "Running";
         state.lastLogs = 0;
@@ -711,7 +835,11 @@
                 body: { models, mode, train_pct: Number($("#train-pct").value), seed: Number(state.settings.random_seed || 42) },
             });
             pollJob(response.job_id);
-        } catch (error) { toast(error.message, "error"); updateComparisonNotice(error.message); }
+        } catch (error) {
+            toast(error.message, "error");
+            updateComparisonNotice(error.message);
+            setParameterRunLoading(false);
+        }
     }
 
     async function pollJob(jobId) {
@@ -724,13 +852,18 @@
             if (job.status === "running") setTimeout(() => pollJob(jobId), 650);
             else if (job.status === "failed") {
                 toast(job.error, "error"); updateComparisonNotice(job.error); $("#console-status").textContent = "Failed";
+                setParameterRunLoading(false);
             } else {
                 state.result = job.result;
                 renderResults(job.result);
                 $("#console-status").textContent = "Complete";
                 toast("Model comparison completed.");
+                setParameterRunLoading(false);
             }
-        } catch (error) { toast(error.message, "error"); }
+        } catch (error) {
+            toast(error.message, "error");
+            setParameterRunLoading(false);
+        }
     }
 
     function renderResults(result) {
@@ -738,9 +871,9 @@
         $("#comparison-notice").classList.add("hidden");
         $("#results-area").classList.remove("hidden");
         $("#export-button").disabled = false;
+        $("#export-button").dataset.tooltip = "Export the completed comparison as a PDF report, PNG image, or XLSX workbook.";
         const receipt = result.affordability || {};
         $("#result-summary").textContent = `${titleCase(result.task)} · ${result.train_pct}% train / ${result.test_pct}% test · ${receipt.resource_mode_label || titleCase(result.mode || "full")} mode · ${Number(result.rows_processed).toLocaleString()} rows processed`;
-        $("#result-id").textContent = `Result ${result.id.slice(0, 8)}`;
         $("#transformation-note").innerHTML = `<strong>Automatic preparation used for modelling</strong><br>${(result.transformations || []).map(escapeHtml).join(" · ")}`;
         const accessItems = [
             ["Application licence/API fee", `RM${Number(receipt.application_fee_myr || 0).toFixed(2)}`],
@@ -759,33 +892,126 @@
 
     function renderMetricBars(result) {
         const chart = $("#metric-chart");
+        chart.innerHTML = `<div class="detail-card-title-row"><h4>Model Performance Metrics ${chartInfoButton(metricChartExplanation(), "Explain the performance metrics table")}</h4>${chartExpandButton("data-expand-metric-chart", "Expand performance metrics table")}</div><div class="metric-chart-rows">${metricComparisonTableHtml(result)}</div>`;
+        $("[data-expand-metric-chart]", chart)?.addEventListener("click", () => openMetricChartFullscreen(result));
+    }
+
+    function metricComparisonTableHtml(result) {
         const metrics = result.comparison_chart.labels;
-        chart.innerHTML = metrics.map((metric, metricIndex) => {
+        const seriesList = result.comparison_chart.series;
+        const modelHeadings = seriesList.map((series, seriesIndex) => `<th scope="col"><span class="metric-model-heading"><span class="metric-model-colour metric-model-colour-${seriesIndex}" aria-hidden="true"></span>${escapeHtml(series.name)}</span></th>`).join("");
+        const rows = metrics.map((metric, metricIndex) => {
             const values = result.comparison_chart.series.map(series => Number(series.values[metricIndex])).filter(Number.isFinite);
             const max = Math.max(...values.map(Math.abs), 1);
-            const lines = result.comparison_chart.series.map(series => {
+            const modelValues = seriesList.map(series => {
                 const value = series.values[metricIndex];
-                if (value === null || value === undefined) return "";
-                const width = Math.max(1, Math.min(100, Math.abs(Number(value)) / max * 100));
-                return `<div class="bar-line"><span>${escapeHtml(series.name)}</span><div class="bar-track"><div class="bar-fill" style="width:${width}%"></div></div><strong>${escapeHtml(formatMetric(metric, value))}</strong></div>`;
+                return `<td class="metric-model-value">${value === null || value === undefined ? "—" : escapeHtml(formatMetric(metric, value))}</td>`;
             }).join("");
-            return `<div class="chart-row"><span class="chart-row-label">${escapeHtml(titleCase(metric))}</span><div class="bar-group">${lines}</div></div>`;
+            const visualComparison = seriesList.map((series, seriesIndex) => {
+                const value = series.values[metricIndex];
+                if (value === null || value === undefined) return `<div class="metric-comparison-bar"><div class="metric-table-bar-track"></div><strong>—</strong></div>`;
+                const width = Math.max(1, Math.min(100, Math.abs(Number(value)) / max * 100));
+                return `<div class="metric-comparison-bar"><div class="metric-table-bar-track"><span class="metric-table-bar-fill metric-model-background-${seriesIndex}" style="width:${width}%"></span></div><strong>${escapeHtml(formatMetric(metric, value))}</strong></div>`;
+            }).join("");
+            return `<tr><th scope="row">${escapeHtml(titleCase(metric))}</th>${modelValues}<td><div class="metric-visual-comparison">${visualComparison}</div></td></tr>`;
         }).join("");
+        const modelColumns = seriesList.map(() => `<col class="metric-model-column">`).join("");
+        return `<div class="metric-comparison-table-wrap"><table class="metric-comparison-table"><colgroup><col class="metric-name-column">${modelColumns}<col class="metric-visual-column"></colgroup><thead><tr><th scope="col">Metric</th>${modelHeadings}<th scope="col">Visual Comparison</th></tr></thead><tbody>${rows}</tbody></table></div>`;
     }
 
     function renderDetailCharts(result) {
         const container = $("#detail-charts");
         container.innerHTML = result.models.map((model, index) => {
             if (model.chart?.type === "confusion") {
-                const labels = model.chart.labels || [];
-                const maximum = Math.max(...(model.chart.matrix || []).flat(), 1);
-                const header = labels.map(label => `<th scope="col">${escapeHtml(label)}</th>`).join("");
-                const rows = (model.chart.matrix || []).map((row, rowIndex) => `<tr><th scope="row">${escapeHtml(labels[rowIndex])}</th>${row.map(value => `<td style="--cell-strength:${Math.max(8, Number(value) / maximum * 100)}%">${escapeHtml(value)}</td>`).join("")}</tr>`).join("");
-                return `<article class="detail-card"><h4>${escapeHtml(model.name)} · Confusion Matrix</h4><div class="confusion-axis predicted-axis">Predicted Class →</div><div class="confusion-layout"><div class="confusion-axis actual-axis">Actual Class ↓</div><div class="confusion-table-wrap"><table class="confusion-table"><thead><tr><th scope="col">Actual \\ Predicted</th>${header}</tr></thead><tbody>${rows}</tbody></table></div></div></article>`;
+                return `<article class="detail-card"><div class="detail-card-title-row"><h4>${escapeHtml(model.name)} · Confusion Matrix ${confusionMatrixInfoButton()}</h4>${chartExpandButton(`data-expand-confusion-matrix="${index}"`, `Expand ${model.name} confusion matrix`)}</div>${confusionMatrixHtml(model)}</article>`;
             }
-            return `<article class="detail-card"><h4>${escapeHtml(model.name)} · ${escapeHtml(titleCase(model.chart?.type || "distribution"))}</h4><canvas class="mini-chart" data-chart-index="${index}" width="580" height="220"></canvas></article>`;
+            const title = modelChartTitle(model);
+            const explanation = modelChartExplanation(model);
+            return `<article class="detail-card"><div class="detail-card-title-row"><h4>${escapeHtml(model.name)} · ${escapeHtml(title)} ${chartInfoButton(explanation, `Explain ${title}`)}</h4>${chartExpandButton(`data-expand-model-chart="${index}"`, `Expand ${model.name} ${title}`)}</div><canvas class="mini-chart" data-chart-index="${index}" width="580" height="220"></canvas></article>`;
         }).join("");
+        $$('[data-expand-confusion-matrix]', container).forEach(button => button.addEventListener("click", () => {
+            const model = result.models[Number(button.dataset.expandConfusionMatrix)];
+            if (model) openConfusionMatrixFullscreen(model);
+        }));
+        $$('[data-expand-model-chart]', container).forEach(button => button.addEventListener("click", () => {
+            const index = Number(button.dataset.expandModelChart);
+            const model = result.models[index];
+            if (model) openModelChartFullscreen(model, index);
+        }));
         $$("canvas[data-chart-index]", container).forEach(canvas => drawModelChart(canvas, result.models[Number(canvas.dataset.chartIndex)], Number(canvas.dataset.chartIndex)));
+    }
+
+    function chartExpandButton(attribute, label) {
+        return `<button class="button secondary small chart-expand-button" type="button" ${attribute} aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"/></svg></button>`;
+    }
+
+    function chartInfoButton(explanation, label) {
+        return `<button class="info-button chart-info-button" type="button" aria-label="${escapeHtml(label)}" data-tooltip="${escapeHtml(explanation)}"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 11v5M12 8h.01"/></svg></button>`;
+    }
+
+    function metricChartExplanation() {
+        return "Each row contains one metric, while model columns place the results side by side. The final column provides a coloured visual comparison and exact value. Bars are scaled within each metric. Higher is better for accuracy, precision, recall, F1, R², silhouette and Calinski-Harabasz. Lower is better for error, Davies-Bouldin and inertia values.";
+    }
+
+    function modelChartTitle(model) {
+        const chart = model.chart || {};
+        if (chart.type === "actual_predicted") return "Actual vs Predicted";
+        if (chart.values || chart.counts || chart.type === "cluster_counts") return "Cluster Size Distribution";
+        return titleCase(chart.type || "Model Chart");
+    }
+
+    function modelChartExplanation(model) {
+        const chart = model.chart || {};
+        if (chart.type === "actual_predicted") {
+            return "The blue line shows actual test values and the purple line shows model predictions in the same row order. Predictions are closer when the two lines stay near each other. The horizontal position is test-row order and the vertical position is the target value.";
+        }
+        if (chart.values || chart.counts || chart.type === "cluster_counts") {
+            return "Each bar shows how many dataset rows were assigned to a cluster. It helps reveal very small, large or unbalanced groups, but cluster size alone does not prove that a clustering model is better. Use the clustering scores for comparison.";
+        }
+        return "This chart summarises the model output. Use its labels and values together with the reported model metrics when comparing results.";
+    }
+
+    function confusionMatrixHtml(model) {
+        const labels = model.chart?.labels || [];
+        const matrix = model.chart?.matrix || [];
+        const maximum = Math.max(...matrix.flat(), 1);
+        const tableColumns = Array.from({ length: labels.length + 1 }, () => `<col class="confusion-matrix-column">`).join("");
+        const header = labels.map(label => `<th scope="col">${escapeHtml(label)}</th>`).join("");
+        const rows = matrix.map((row, rowIndex) => `<tr><th scope="row">${escapeHtml(labels[rowIndex])}</th>${row.map(value => `<td style="--cell-strength:${Math.max(8, Number(value) / maximum * 100)}%">${escapeHtml(value)}</td>`).join("")}</tr>`).join("");
+        return `<div class="confusion-axis predicted-axis">Predicted Class →</div><div class="confusion-layout"><div class="confusion-axis actual-axis">Actual Class ↓</div><div class="confusion-table-wrap"><table class="confusion-table"><colgroup>${tableColumns}</colgroup><thead><tr><th scope="col">Actual \\ Predicted</th>${header}</tr></thead><tbody>${rows}</tbody></table></div></div>`;
+    }
+
+    function confusionMatrixInfoButton() {
+        return chartInfoButton("Rows show the actual classes and columns show the predicted classes. Diagonal cells are correct predictions. Off-diagonal cells are mistakes, and darker cells contain more rows.", "Explain the confusion matrix");
+    }
+
+    function openConfusionMatrixFullscreen(model) {
+        openModal(
+            `<section class="expanded-confusion-matrix"><h2 id="modal-title">${escapeHtml(model.name)} · Confusion Matrix ${confusionMatrixInfoButton()}</h2><p>Compare every actual class with the class predicted by the model.</p>${confusionMatrixHtml(model)}</section>`,
+            { closeWithCrossOnly: true, chartFullscreen: true },
+        );
+        $("#global-modal .modal-close")?.focus();
+    }
+
+    function openMetricChartFullscreen(result) {
+        const explanation = metricChartExplanation();
+        openModal(
+            `<section class="expanded-chart expanded-metric-chart"><h2 id="modal-title">Model Performance Metrics ${chartInfoButton(explanation, "Explain the performance metrics table")}</h2><p>${escapeHtml(explanation)}</p><div class="metric-chart-rows">${metricComparisonTableHtml(result)}</div></section>`,
+            { closeWithCrossOnly: true, chartFullscreen: true },
+        );
+        $("#global-modal .modal-close")?.focus();
+    }
+
+    function openModelChartFullscreen(model, index) {
+        const title = modelChartTitle(model);
+        const explanation = modelChartExplanation(model);
+        openModal(
+            `<section class="expanded-chart expanded-model-chart"><h2 id="modal-title">${escapeHtml(model.name)} · ${escapeHtml(title)} ${chartInfoButton(explanation, `Explain ${title}`)}</h2><p>${escapeHtml(explanation)}</p><canvas data-expanded-model-chart width="1400" height="650"></canvas></section>`,
+            { closeWithCrossOnly: true, chartFullscreen: true },
+        );
+        const canvas = $("[data-expanded-model-chart]");
+        if (canvas) drawModelChart(canvas, model, index);
+        $("#global-modal .modal-close")?.focus();
     }
 
     function drawModelChart(canvas, model, index) {
@@ -807,35 +1033,69 @@
             ctx.fillStyle = "#667085"; ctx.fillText("Rows: actual · Columns: predicted", 60, 205);
             return;
         }
-        if (chart.values) {
-            const max = Math.max(...chart.values, 1), gap = 12, barWidth = Math.max(10, (width - 90) / chart.values.length - gap);
-            chart.values.forEach((value, i) => {
-                const barHeight = value / max * 145;
+        const chartValues = chart.values || chart.counts;
+        if (chartValues) {
+            const max = Math.max(...chartValues, 1), gap = Math.max(8, width * .012), left = Math.max(50, width * .06), right = Math.max(25, width * .035), bottom = Math.max(40, height * .16);
+            const availableWidth = width - left - right;
+            const barWidth = Math.max(10, (availableWidth - gap * Math.max(0, chartValues.length - 1)) / chartValues.length);
+            const chartHeight = height - Math.max(25, height * .08) - bottom;
+            const clusterLabelFontSize = Math.max(12, Math.min(21, Math.round(height / 31)));
+            ctx.font = `700 ${clusterLabelFontSize}px system-ui`;
+            ctx.textAlign = "center";
+            chartValues.forEach((value, i) => {
+                const barHeight = value / max * chartHeight;
+                const barX = left + i * (barWidth + gap);
                 ctx.fillStyle = index ? "#7c3aed" : "#3157d5";
-                ctx.fillRect(50 + i * (barWidth + gap), 180 - barHeight, barWidth, barHeight);
-                ctx.fillStyle = "#667085"; ctx.fillText(chart.labels[i], 50 + i * (barWidth + gap), 202);
+                ctx.fillRect(barX, height - bottom - barHeight, barWidth, barHeight);
+                ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--text").trim() || "#1d1d1f";
+                ctx.fillText(chart.labels[i], barX + barWidth / 2, height - Math.max(12, bottom * .32));
             });
+            ctx.textAlign = "left";
             return;
         }
         const actual = chart.actual || [], predicted = chart.predicted || [];
         const all = [...actual, ...predicted].map(Number).filter(Number.isFinite);
         if (!all.length) { ctx.fillText("No chart points available.", 30, 50); return; }
         const min = Math.min(...all), max = Math.max(...all), span = max - min || 1;
+        const left = Math.max(35, width * .04), right = Math.max(25, width * .03), top = Math.max(25, height * .08), bottom = Math.max(35, height * .14);
         const drawLine = (values, color) => {
             ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.beginPath();
             values.forEach((value, i) => {
-                const x = 35 + i / Math.max(1, values.length - 1) * (width - 60);
-                const y = 185 - (Number(value) - min) / span * 150;
+                const x = left + i / Math.max(1, values.length - 1) * (width - left - right);
+                const y = height - bottom - (Number(value) - min) / span * (height - top - bottom);
                 i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
             }); ctx.stroke();
         };
         drawLine(actual, "#3157d5"); drawLine(predicted, "#7c3aed");
-        ctx.fillStyle = "#3157d5"; ctx.fillText("Actual", 35, 210); ctx.fillStyle = "#7c3aed"; ctx.fillText("Predicted", 95, 210);
+        const legendFontSize = Math.max(12, Math.min(20, Math.round(height / 32)));
+        const legendGap = Math.max(28, legendFontSize * 1.8);
+        const markerWidth = Math.max(18, legendFontSize * 1.35);
+        const markerGap = Math.max(7, legendFontSize * .45);
+        const legendItems = [
+            { label: "Actual", color: "#3157d5" },
+            { label: "Predicted", color: "#7c3aed" },
+        ];
+        ctx.font = `600 ${legendFontSize}px system-ui`;
+        const itemWidths = legendItems.map(item => markerWidth + markerGap + ctx.measureText(item.label).width);
+        const legendWidth = itemWidths.reduce((total, itemWidth) => total + itemWidth, 0) + legendGap;
+        const legendY = height - Math.max(13, legendFontSize * .7);
+        let legendX = (width - legendWidth) / 2;
+        legendItems.forEach((item, itemIndex) => {
+            ctx.strokeStyle = item.color;
+            ctx.lineWidth = Math.max(2, legendFontSize * .15);
+            ctx.beginPath();
+            ctx.moveTo(legendX, legendY - legendFontSize * .32);
+            ctx.lineTo(legendX + markerWidth, legendY - legendFontSize * .32);
+            ctx.stroke();
+            ctx.fillStyle = item.color;
+            ctx.fillText(item.label, legendX + markerWidth + markerGap, legendY);
+            legendX += itemWidths[itemIndex] + legendGap;
+        });
     }
 
     function showExportModal() {
         if (!state.result) return;
-        openModal(`<h2 id="modal-title">Export Comparison Result</h2><p>Choose a format for result ${escapeHtml(state.result.id.slice(0, 8))}.</p><div class="modal-options"><a class="modal-option" href="/api/results/${state.result.id}/export.pdf"><span><strong>PDF Report</strong><small>Summary and model metrics for academic reporting.</small></span></a><a class="modal-option" href="/api/results/${state.result.id}/export.png"><span><strong>PNG Image</strong><small>A portable visual summary.</small></span></a><a class="modal-option" href="/api/results/${state.result.id}/export.xlsx"><span><strong>XLSX Workbook</strong><small>Summary, metrics, and selected-column sheets.</small></span></a></div>`);
+        openModal(`<h2 id="modal-title">Export Comparison Result</h2><p>Choose a format for comparison ID ${escapeHtml(state.result.id.slice(0, 8))}.</p><div class="modal-options"><a class="modal-option" href="/api/results/${state.result.id}/export.pdf"><span><strong>PDF Report</strong><small>Summary and model metrics for academic reporting.</small></span></a><a class="modal-option" href="/api/results/${state.result.id}/export.png"><span><strong>PNG Image</strong><small>A portable visual summary.</small></span></a><a class="modal-option" href="/api/results/${state.result.id}/export.xlsx"><span><strong>XLSX Workbook</strong><small>Summary, metrics, and selected-column sheets.</small></span></a></div>`);
     }
 
     // --------------------
@@ -1213,11 +1473,11 @@
         const task = $("#library-task")?.value || "all";
         const items = state.models.filter(model => {
             const isCustom = model.id.startsWith("custom:");
-            const matchesQuery = !query || [model.name, model.family, model.summary, model.best_for, model.task_label, isCustom ? "custom model" : ""].join(" ").toLowerCase().includes(query);
+            const matchesQuery = !query || [model.name, model.family, ...(model.tags || []), model.summary, model.best_for, model.task_label, isCustom ? "custom model" : ""].join(" ").toLowerCase().includes(query);
             const matchesType = task === "all" || (task === "custom" && isCustom) || (task.startsWith("tag:") && isCustom && model.task_label === task.slice(4)) || model.tasks.includes(task);
             return matchesQuery && matchesType;
         });
-        $("#library-grid").innerHTML = items.map(model => { const isCustom = model.id.startsWith("custom:"); const tags = isCustom ? `<span class="task-tag user-model-tag">Custom Model</span>${model.task_label ? `<span class="task-tag">${escapeHtml(model.task_label)}</span>` : ""}` : model.tasks.map(item => `<span class="task-tag">${escapeHtml(titleCase(item))}</span>`).join(""); return `<article class="card library-card"><div class="library-card-head"><div><span class="family">${escapeHtml(model.family)}</span><h2>${escapeHtml(model.name)}</h2></div></div><div class="task-tags">${tags}</div><p>${escapeHtml(model.summary)}</p><div class="best-box" tabindex="0" title="Scroll to read the full use case"><strong>Best Used When</strong><br>${escapeHtml(model.best_for)}</div><div class="library-card-actions"><button class="button secondary small use-library-model" data-library-model="${escapeHtml(model.id)}">Use in Comparison</button>${isCustom ? `<a class="button ghost small" href="/custom-models#saved-models">Manage Model</a>` : ""}</div></article>`; }).join("");
+        $("#library-grid").innerHTML = items.map(model => { const isCustom = model.id.startsWith("custom:"); const tags = isCustom ? `<span class="task-tag user-model-tag">Custom Model</span>${model.task_label ? `<span class="task-tag">${escapeHtml(model.task_label)}</span>` : ""}` : [...model.tasks.map(titleCase), ...(model.tags || [])].map(item => `<span class="task-tag">${escapeHtml(item)}</span>`).join(""); return `<article class="card library-card"><div class="library-card-head"><div><span class="family">${escapeHtml(model.family)}</span><h2>${escapeHtml(model.name)}</h2></div></div><div class="task-tags">${tags}</div><p>${escapeHtml(model.summary)}</p><div class="best-box" tabindex="0" title="Scroll to read the full use case"><strong>Best Used When</strong><br>${escapeHtml(model.best_for)}</div><div class="library-card-actions"><button class="button secondary small use-library-model" data-library-model="${escapeHtml(model.id)}">Use in Comparison</button>${isCustom ? `<a class="button ghost small" href="/custom-models#saved-models">Manage Model</a>` : ""}</div></article>`; }).join("");
         $$('.use-library-model').forEach(button => button.addEventListener("click", () => { localStorage.setItem("pendingModel", button.dataset.libraryModel); location.href = "/comparison"; }));
     }
 

@@ -23,7 +23,7 @@ If startup fails, read the message printed by `run.py`. Common causes are Python
 ## Main workflow
 
 1. Select the visible train/test split.
-2. Upload a local `.csv` or `.xlsx` dataset, or paste a public Kaggle dataset page link. Kaggle imports choose the largest non-empty CSV/XLSX file that passes the 1,000 MB file limit.
+2. Upload a local `.csv` or `.xlsx` dataset, or paste a public Kaggle dataset page link. The website downloads public Kaggle data directly without a Kaggle account or extra Kaggle software, then chooses the largest non-empty CSV/XLSX file that passes the 1,000 MB limit.
 3. Review the automatic target and task explanation, then override the target or exclude noise columns if needed.
 4. Drag or click one or two compatible models. Small jobs run automatically; longer jobs ask whether to use sampled, chunked-profile, or full processing.
 5. Follow progress in the terminal-style panel and export the completed result as PDF, PNG, or XLSX.

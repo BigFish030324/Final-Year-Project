@@ -56,8 +56,8 @@ ID_HINTS = ("id", "uuid", "guid", "index", "serial", "code")
 
 MODEL_CATALOG: list[dict[str, Any]] = [
     {
-        "id": "decision_tree", "name": "Decision Tree", "family": "Tree-based",
-        "tasks": ["classification"], "version": "scikit-learn",
+        "id": "decision_tree", "name": "Decision Tree", "family": "Classification",
+        "tasks": ["classification"], "tags": ["Tree-Based"], "version": "scikit-learn",
         "summary": "Uses easy-to-follow if/then rules to predict a category.",
         "best_for": "Classification with mixed patterns and an interpretable result.",
         "defaults": {
@@ -67,21 +67,21 @@ MODEL_CATALOG: list[dict[str, Any]] = [
     },
     {
         "id": "logistic_regression", "name": "Logistic Regression", "family": "Classification",
-        "tasks": ["classification"], "version": "scikit-learn",
+        "tasks": ["classification"], "tags": ["Linear Classifier"], "version": "scikit-learn",
         "summary": "Estimates the probability that a row belongs to a category.",
         "best_for": "Binary or multi-class targets and an explainable baseline.",
         "defaults": {"C": 1.0, "max_iter": 500, "solver": "lbfgs", "class_weight": "none", "tol": 0.0001}, "factor": 0.65,
     },
     {
         "id": "linear_regression", "name": "Linear Regression", "family": "Regression",
-        "tasks": ["regression"], "version": "scikit-learn",
+        "tasks": ["regression"], "tags": ["Linear Model"], "version": "scikit-learn",
         "summary": "Fits a straight-line relationship to predict a continuous number.",
         "best_for": "Numeric targets with roughly linear relationships and a clear baseline.",
         "defaults": {"fit_intercept": True, "positive": False}, "factor": 0.35,
     },
     {
         "id": "random_forest", "name": "Random Forest", "family": "Regression",
-        "tasks": ["regression"], "version": "scikit-learn",
+        "tasks": ["regression"], "tags": ["Ensemble"], "version": "scikit-learn",
         "summary": "Combines many decision trees to predict a continuous number.",
         "best_for": "Regression with non-linear relationships and interacting input features.",
         "defaults": {
@@ -92,14 +92,14 @@ MODEL_CATALOG: list[dict[str, Any]] = [
     },
     {
         "id": "kmeans", "name": "K-Means", "family": "Clustering",
-        "tasks": ["clustering"], "version": "scikit-learn",
+        "tasks": ["clustering"], "tags": ["Centroid-Based"], "version": "scikit-learn",
         "summary": "Groups similar rows into clusters without needing a prediction target.",
         "best_for": "Exploring natural groups in numeric data; it is not a supervised predictor.",
         "defaults": {"n_clusters": 3, "init": "k-means++", "n_init": 10, "max_iter": 300, "tol": 0.0001}, "factor": 0.9,
     },
     {
         "id": "agglomerative_clustering", "name": "Agglomerative Clustering", "family": "Clustering",
-        "tasks": ["clustering"], "version": "scikit-learn",
+        "tasks": ["clustering"], "tags": ["Hierarchical"], "version": "scikit-learn",
         "summary": "Builds a hierarchy by repeatedly joining the most similar groups of rows.",
         "best_for": "Comparing hierarchical groups with the centroid-based groups from K-Means.",
         "defaults": {"n_clusters": 3, "linkage": "ward"}, "factor": 1.6,
@@ -318,6 +318,7 @@ def profile_dataset(path: Path, *, original_name: str, dataset_id: str) -> dict[
         "rows": int(rows),
         "profiled_rows": int(len(frame)),
         "columns": int(len(frame.columns)),
+        "inspected_cells": int(frame.size),
         "column_names": list(frame.columns),
         "selected_columns": list(frame.columns),
         "target": target,
@@ -806,7 +807,10 @@ def compare_models(
         else:
             standard_tasks.append(task)
     if len(set(standard_tasks)) > 1:
-        raise UserFacingError("These models solve different task types and cannot share a fair comparison chart.")
+        raise UserFacingError(
+            "Both models solve different types of task. Compare same category models such as Classification vs Classification. "
+            "A direct comparison is not fair because classification, regression and clustering use different outputs and evaluation metrics."
+        )
 
     results = []
     for index, request in enumerate(model_requests):

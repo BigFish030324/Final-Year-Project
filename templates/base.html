@@ -3,7 +3,7 @@ Shared Website Layout
 Display the same navigation, account details and common webpage structure on every page.
 -------------------- -->
 <!doctype html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="{{ current_theme|default('light') }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -14,7 +14,7 @@ Display the same navigation, account details and common webpage structure on eve
             if (localStorage.getItem("sidebarCollapsed") === "true") document.documentElement.classList.add("sidebar-precollapsed");
         } catch (error) { /* Local storage can be unavailable in privacy modes. */ }
     </script>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/website_styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/website_styles.css', v='20260819-expanded-equal-matrix-1') }}">
 </head>
 <body data-page="{{ page|default('') }}">
     <div class="app-shell">
@@ -29,24 +29,24 @@ Display the same navigation, account details and common webpage structure on eve
             </button>
             </div>
             <nav class="primary-nav" aria-label="Main navigation">
-                <a href="{{ url_for('comparison') }}" class="nav-link {% if active_tab == 'comparison' %}active{% endif %}"><span class="nav-icon">⇄</span><span>Comparison</span></a>
-                <a href="{{ url_for('cleaning') }}" class="nav-link {% if active_tab == 'cleaning' %}active{% endif %}"><span class="nav-icon">✦</span><span>Data Cleaning</span></a>
-                <a href="{{ url_for('libraries') }}" class="nav-link {% if active_tab == 'libraries' %}active{% endif %}"><span class="nav-icon">▦</span><span>Model Library</span></a>
-                <a href="{{ url_for('custom_models') }}" class="nav-link {% if active_tab == 'custom_models' %}active{% endif %}"><span class="nav-icon custom-models-navigation-icon">&lt;/&gt;</span><span>Custom Models</span></a>
-                <a href="{{ url_for('history') }}" class="nav-link {% if active_tab == 'history' %}active{% endif %}"><span class="nav-icon">↺</span><span>History</span></a>
+                <a href="{{ url_for('comparison') }}" class="nav-link {% if active_tab == 'comparison' %}active{% endif %}"><span class="nav-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h11m0 0-3-3m3 3-3 3M17 17H6m0 0 3 3m-3-3 3-3"/></svg></span><span>Comparison</span></a>
+                <a href="{{ url_for('cleaning') }}" class="nav-link {% if active_tab == 'cleaning' %}active{% endif %}"><span class="nav-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3Z"/><path d="m18.5 15 .7 2.3 2.3.7-2.3.7-.7 2.3-.7-2.3-2.3-.7 2.3-.7.7-2.3Z"/></svg></span><span>Data Cleaning</span></a>
+                <a href="{{ url_for('libraries') }}" class="nav-link {% if active_tab == 'libraries' %}active{% endif %}"><span class="nav-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg></span><span>Model Library</span></a>
+                <a href="{{ url_for('custom_models') }}" class="nav-link {% if active_tab == 'custom_models' %}active{% endif %}"><span class="nav-icon custom-models-navigation-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 8-4 4 4 4m8-8 4 4-4 4M14 4l-4 16"/></svg></span><span>Custom Models</span></a>
+                <a href="{{ url_for('history') }}" class="nav-link {% if active_tab == 'history' %}active{% endif %}"><span class="nav-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v5h5"/><path d="M5.5 16.5A8 8 0 1 0 6 6.5L4 9"/></svg></span><span>History</span></a>
             </nav>
             <div class="sidebar-bottom">
                 <div class="user-chip">
                     <span class="avatar">{{ current_account_name[0]|upper }}</span>
                     <span class="user-copy"><strong>{{ current_account_name }}</strong><small>Local Account</small></span>
-                    <a class="settings-link" href="{{ url_for('settings') }}" data-tooltip="Open Settings" aria-label="Open Settings">⚙</a>
+                    <a class="settings-link" href="{{ url_for('settings') }}" data-tooltip="Open Settings" aria-label="Open Settings" title="Open Settings"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.86 2.86-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21H9.6v-.1A1.7 1.7 0 0 0 8.6 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.86-2.86.06-.06A1.7 1.7 0 0 0 4.2 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H2.4V9.6h.1A1.7 1.7 0 0 0 4.2 8.6a1.7 1.7 0 0 0-.34-1.88l-.06-.06L6.66 3.8l.06.06A1.7 1.7 0 0 0 8.6 4.2a1.7 1.7 0 0 0 1-.6A1.7 1.7 0 0 0 10 2.5v-.1h4v.1a1.7 1.7 0 0 0 1 1.7 1.7 1.7 0 0 0 1.88-.34l.06-.06 2.86 2.86-.06.06A1.7 1.7 0 0 0 19.4 8.6a1.7 1.7 0 0 0 .6 1 1.7 1.7 0 0 0 1.1.4h.1v4h-.1a1.7 1.7 0 0 0-1.7 1Z"/></svg></a>
                 </div>
             </div>
         </aside>
 
         <main class="main-area">
             <header class="mobile-header">
-                <button class="icon-button" id="sidebar-toggle" aria-label="Open navigation">☰</button>
+                <button class="icon-button" id="sidebar-toggle" aria-label="Open navigation"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
                 <span class="mobile-brand">DataComparison</span>
             </header>
             {% with messages = get_flashed_messages(with_categories=true) %}
@@ -61,11 +61,11 @@ Display the same navigation, account details and common webpage structure on eve
     <div class="toast-region" id="toast-region" aria-live="polite"></div>
     <div class="modal-backdrop hidden" id="global-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
         <div class="modal-card">
-            <button class="modal-close" type="button" data-close-modal aria-label="Close">×</button>
+            <button class="modal-close" type="button" data-close-modal aria-label="Close"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
             <div id="modal-content"></div>
         </div>
     </div>
-    <script src="{{ url_for('static', filename='js/website_controller.js', v='20260731-descriptive-filenames-1') }}"></script>
+    <script src="{{ url_for('static', filename='js/website_controller.js', v='20260819-centred-cluster-labels-1') }}"></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>
