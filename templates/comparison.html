@@ -32,12 +32,12 @@ Upload a dataset, choose models and review their results in the main workspace.
                 </div>
                 <div class="split-panel">
                     <div class="split-editor">
-                        <label class="percentage-field"><span>Training Data</span><span class="percentage-input"><input type="number" id="train-percent-input" min="0" max="100" value="70" inputmode="numeric"><strong>%</strong></span></label>
+                        <label class="percentage-field"><span>Training Data</span><span class="percentage-input"><input type="number" id="train-percent-input" min="0" max="100" step="1" value="70" inputmode="numeric"><strong>%</strong></span></label>
                         <div class="split-track-wrap">
                             <div class="split-visual" aria-hidden="true"><span id="train-bar" style="width:70%">Train 70%</span><span id="test-bar" style="width:30%">Test 30%</span><span class="split-divider" id="split-divider"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M12 6v12"/></svg></span></div>
                             <input type="range" id="train-pct" min="0" max="100" value="70" aria-label="Training data percentage">
                         </div>
-                        <label class="percentage-field"><span>Testing Data</span><span class="percentage-input"><input type="number" id="test-percent-input" min="0" max="100" value="30" inputmode="numeric"><strong>%</strong></span></label>
+                        <label class="percentage-field"><span>Testing Data</span><span class="percentage-input"><input type="number" id="test-percent-input" min="0" max="100" step="1" value="30" inputmode="numeric"><strong>%</strong></span></label>
                     </div>
                     <p class="split-warning hidden" id="split-warning" role="status"></p>
                 </div>

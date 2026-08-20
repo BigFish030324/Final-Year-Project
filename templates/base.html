@@ -14,7 +14,7 @@ Display the same navigation, account details and common webpage structure on eve
             if (localStorage.getItem("sidebarCollapsed") === "true") document.documentElement.classList.add("sidebar-precollapsed");
         } catch (error) { /* Local storage can be unavailable in privacy modes. */ }
     </script>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/website_styles.css', v='20260819-expanded-equal-matrix-1') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/website_styles.css', v='20260820-clear-input-columns-1') }}">
 </head>
 <body data-page="{{ page|default('') }}">
     <div class="app-shell">
@@ -65,7 +65,7 @@ Display the same navigation, account details and common webpage structure on eve
             <div id="modal-content"></div>
         </div>
     </div>
-    <script src="{{ url_for('static', filename='js/website_controller.js', v='20260819-centred-cluster-labels-1') }}"></script>
+    <script src="{{ url_for('static', filename='js/website_controller.js', v='20260820-clear-input-columns-1') }}"></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

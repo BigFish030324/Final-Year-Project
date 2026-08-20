@@ -20,6 +20,10 @@
         lastLogs: 0,
     };
     let splitInputTimer = null;
+    let modalCloseTimer = null;
+    let modalCloseHandler = null;
+    const randomSeedMinimum = 0;
+    const randomSeedMaximum = 4_294_967_295;
 
     const escapeHtml = (value) => String(value ?? "")
         .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
@@ -49,22 +53,91 @@
         item.className = `toast ${type}`;
         item.textContent = message;
         region.appendChild(item);
-        setTimeout(() => item.remove(), duration);
+        setTimeout(() => {
+            item.classList.add("leaving");
+            item.addEventListener("animationend", () => item.remove(), { once: true });
+            setTimeout(() => item.remove(), 260);
+        }, duration);
     }
 
     function openModal(html, options = {}) {
         const modal = $("#global-modal");
+        clearTimeout(modalCloseTimer);
+        const modalCard = modal.querySelector(".modal-card");
+        if (modalCloseHandler) modalCard?.removeEventListener("animationend", modalCloseHandler);
+        modalCloseHandler = null;
         $("#modal-content").innerHTML = html;
+        modal.classList.remove("closing");
         modal.classList.toggle("no-close", options.hideClose === true);
         modal.classList.toggle("cross-only-close", options.closeWithCrossOnly === true);
         modal.classList.toggle("chart-fullscreen-modal", options.chartFullscreen === true);
         modal.classList.remove("hidden");
     }
 
+    function bindBoundedWholeNumberInput(input, options) {
+        const { minimum, maximum, onValid, onInvalid } = options;
+        input.dataset.lastValidValue = input.value;
+
+        input.addEventListener("keydown", event => {
+            if (["-", "+", "e", "E", ".", ","].includes(event.key)) {
+                event.preventDefault();
+                onInvalid?.();
+            }
+        });
+
+        input.addEventListener("input", () => {
+            const text = input.value.trim();
+            if (text === "") {
+                onValid?.(text);
+                return;
+            }
+
+            const value = Number(text);
+            const valid = /^\d+$/.test(text)
+                && Number.isSafeInteger(value)
+                && value >= minimum
+                && value <= maximum;
+
+            if (!valid) {
+                input.value = input.dataset.lastValidValue ?? "";
+                onInvalid?.();
+                return;
+            }
+
+            input.dataset.lastValidValue = text;
+            onValid?.(text);
+        });
+    }
+
+    function showFieldValidation(input, warning, message) {
+        input.classList.add("input-error");
+        warning.textContent = message;
+        warning.classList.remove("hidden");
+    }
+
+    function clearFieldValidation(input, warning) {
+        input.classList.remove("input-error");
+        warning.textContent = "";
+        warning.classList.add("hidden");
+    }
+
     function closeModal() {
         const modal = $("#global-modal");
-        modal?.classList.add("hidden");
-        modal?.classList.remove("cross-only-close", "chart-fullscreen-modal");
+        if (!modal || modal.classList.contains("hidden") || modal.classList.contains("closing")) return;
+        modal.classList.add("closing");
+        const modalCard = modal.querySelector(".modal-card");
+        const finishClosing = () => {
+            clearTimeout(modalCloseTimer);
+            if (modalCloseHandler) modalCard?.removeEventListener("animationend", modalCloseHandler);
+            modalCloseHandler = null;
+            modal.classList.add("hidden");
+            modal.classList.remove("closing", "cross-only-close", "chart-fullscreen-modal");
+        };
+        modalCloseHandler = event => {
+            if (event.target === modalCard) finishClosing();
+        };
+        modalCard?.addEventListener("animationend", modalCloseHandler);
+        modalCloseTimer = setTimeout(finishClosing, 240);
     }
 
     function formatNumber(value, digits = 4) {
@@ -254,9 +327,21 @@
         train.value = Math.min(100, Math.max(0, Number(state.settings.train_pct ?? 70)));
         updateSplit();
         train.addEventListener("input", () => setTrainPercentage(train.value));
-        $("#train-percent-input").addEventListener("input", event => queueTypedSplit("train", event.target.value));
-        $("#test-percent-input").addEventListener("input", event => queueTypedSplit("test", event.target.value));
-        [$("#train-percent-input"), $("#test-percent-input")].forEach(input => input.addEventListener("keydown", event => {
+        const trainingInput = $("#train-percent-input");
+        const testingInput = $("#test-percent-input");
+        bindBoundedWholeNumberInput(trainingInput, {
+            minimum: 0,
+            maximum: 100,
+            onValid: value => queueTypedSplit("train", value),
+            onInvalid: () => showSplitInputLimit("Training data"),
+        });
+        bindBoundedWholeNumberInput(testingInput, {
+            minimum: 0,
+            maximum: 100,
+            onValid: value => queueTypedSplit("test", value),
+            onInvalid: () => showSplitInputLimit("Testing data"),
+        });
+        [trainingInput, testingInput].forEach(input => input.addEventListener("keydown", event => {
             if (event.key === "Enter") { event.preventDefault(); commitTypedSplit(input.id.startsWith("train") ? "train" : "test", input.value); }
         }));
 
@@ -272,8 +357,16 @@
         $("#model-search").addEventListener("input", renderModelShelf);
         $("#model-category").addEventListener("change", renderModelShelf);
         $("#export-button").addEventListener("click", showExportModal);
-        $("#dock-toggle").addEventListener("click", toggleModelDock);
-        $("#parameters-toggle").addEventListener("click", toggleParametersPanel);
+        $("#dock-toggle").addEventListener("click", event => {
+            event.stopPropagation();
+            toggleModelDock();
+        });
+        $("#parameters-toggle").addEventListener("click", event => {
+            event.stopPropagation();
+            toggleParametersPanel();
+        });
+        bindCollapsedPanelExpansion($("#model-dock"), toggleModelDock, "Expand model shelf");
+        bindCollapsedPanelExpansion($("#parameters-panel"), toggleParametersPanel, "Expand parameters");
         $("#apply-parameters").addEventListener("click", applyParametersAndRun);
         $("#recommend-models").addEventListener("click", recommendStarterModels);
         if (window.ResizeObserver) new ResizeObserver(syncFixedPanelSpacing).observe($("#model-dock"));
@@ -306,14 +399,21 @@
 
     function updateSplit() {
         const value = Number($("#train-pct").value);
-        $("#train-percent-input").value = value;
-        $("#test-percent-input").value = 100 - value;
+        const trainingInput = $("#train-percent-input");
+        const testingInput = $("#test-percent-input");
+        trainingInput.value = value;
+        testingInput.value = 100 - value;
+        trainingInput.dataset.lastValidValue = String(value);
+        testingInput.dataset.lastValidValue = String(100 - value);
         $("#train-bar").style.width = `${value}%`;
         $("#test-bar").style.width = `${100 - value}%`;
         $("#train-bar").textContent = value >= 24 ? `Train ${value}%` : "";
         $("#test-bar").textContent = 100 - value >= 24 ? `Test ${100 - value}%` : "";
         $("#split-divider").style.left = `${value}%`;
         const warning = $("#split-warning");
+        trainingInput.closest(".percentage-input")?.classList.remove("input-error");
+        testingInput.closest(".percentage-input")?.classList.remove("input-error");
+        warning.classList.remove("error");
         const endpoint = value === 0 || value === 100;
         const extreme = value < 10 || value > 90;
         warning.classList.toggle("hidden", !extreme);
@@ -322,6 +422,16 @@
             : extreme
                 ? "A very small training or testing portion can produce unreliable results, and some models may fail when too few rows or classes are available."
                 : "";
+    }
+
+    function showSplitInputLimit(label) {
+        clearTimeout(splitInputTimer);
+        const warning = $("#split-warning");
+        const input = label.startsWith("Training") ? $("#train-percent-input") : $("#test-percent-input");
+        input.closest(".percentage-input")?.classList.add("input-error");
+        warning.textContent = `${label} must be a whole number from 0% to 100% and cannot exceed 100%.`;
+        warning.classList.add("error");
+        warning.classList.remove("hidden");
     }
 
     function setTrainPercentage(rawValue, runComparison = true) {
@@ -363,7 +473,42 @@
         button.setAttribute("aria-expanded", String(!collapsed));
         button.setAttribute("aria-label", collapsed ? "Expand model shelf" : "Minimize model shelf");
         button.title = collapsed ? "Expand model shelf" : "Minimize model shelf";
+        updateCollapsedPanelAccessibility(dock, collapsed, "Expand model shelf");
         requestAnimationFrame(syncFixedPanelSpacing);
+    }
+
+    function bindCollapsedPanelExpansion(panel, togglePanel, expandedLabel) {
+        updateCollapsedPanelAccessibility(panel, panel.classList.contains("collapsed"), expandedLabel);
+        panel.addEventListener("click", event => {
+            if (panel.classList.contains("collapsed") && !event.target.closest("button, a, input, select, textarea")) {
+                togglePanel();
+            }
+        });
+        panel.addEventListener("keydown", event => {
+            if (panel.classList.contains("collapsed") && (event.key === "Enter" || event.key === " ")) {
+                event.preventDefault();
+                togglePanel();
+            }
+        });
+    }
+
+    function updateCollapsedPanelAccessibility(panel, collapsed, expandedLabel) {
+        const hiddenRegions = panel.id === "model-dock"
+            ? $$(".model-carousel, .dock-filters", panel)
+            : $$(".parameters-content, .parameters-footer", panel);
+        hiddenRegions.forEach(region => {
+            region.inert = collapsed;
+            region.setAttribute("aria-hidden", String(collapsed));
+        });
+        if (collapsed) {
+            panel.setAttribute("role", "button");
+            panel.setAttribute("tabindex", "0");
+            panel.setAttribute("aria-label", expandedLabel);
+            return;
+        }
+        panel.removeAttribute("role");
+        panel.removeAttribute("tabindex");
+        panel.removeAttribute("aria-label");
     }
 
     function syncFixedPanelSpacing() {
@@ -380,6 +525,7 @@
         button.setAttribute("aria-expanded", String(!collapsed));
         button.setAttribute("aria-label", collapsed ? "Expand parameters" : "Minimize parameters");
         button.title = collapsed ? "Expand parameters" : "Minimize parameters";
+        updateCollapsedPanelAccessibility(panel, collapsed, "Expand parameters");
     }
 
     function bindUploadZone() {
@@ -522,7 +668,10 @@
 
     function showColumnPicker() {
         if (!state.dataset) return;
-        openModal(`<h2 id="modal-title">Choose Model Input Columns</h2><p>Untick identifiers, notes, or other noise. The target remains included automatically.</p><div class="column-checks">${state.dataset.column_names.map(name => `<label><input type="checkbox" value="${escapeHtml(name)}" ${(state.dataset.selected_columns || []).includes(name) ? "checked" : ""} ${name === state.dataset.target ? "disabled" : ""}>${escapeHtml(name)}${name === state.dataset.target ? " (target)" : ""}</label>`).join("")}</div><button class="button primary" id="save-column-choice">Use Selected Columns</button>`);
+        openModal(`<h2 id="modal-title">Choose Model Input Columns</h2><p>Untick identifiers, notes, or other noise. The target remains included automatically.</p><div class="column-checks">${state.dataset.column_names.map(name => `<label><input type="checkbox" value="${escapeHtml(name)}" ${name === state.dataset.target || (state.dataset.selected_columns || []).includes(name) ? "checked" : ""} ${name === state.dataset.target ? "disabled" : ""}>${escapeHtml(name)}${name === state.dataset.target ? " (target)" : ""}</label>`).join("")}</div><div class="button-row"><button class="button primary" id="save-column-choice">Use Selected Columns</button><button class="button secondary" id="clear-input-columns" type="button">Clear Input Columns</button></div>`);
+        $("#clear-input-columns").addEventListener("click", () => {
+            $$(".column-checks input:not(:disabled)").forEach(input => { input.checked = false; });
+        });
         $("#save-column-choice").addEventListener("click", async () => {
             const selected = $$(".column-checks input:checked").map(input => input.value);
             try {
@@ -597,7 +746,7 @@
             return match && group;
         });
         if (category === "recent") filtered.sort((a, b) => recentIds.indexOf(a.id) - recentIds.indexOf(b.id));
-        list.innerHTML = filtered.length ? filtered.map(model => { const guidance = `${model.summary}\nBest for: ${model.best_for}`; const methodTags = (model.tags || []).map(tag => `<span class="model-method-tag">${escapeHtml(tag)}</span>`).join(""); return `<article class="model-card ${model.compatible === false ? "incompatible" : ""}" draggable="${model.compatible !== false}" data-model-id="${escapeHtml(model.id)}" tabindex="0" title="${escapeHtml(guidance)}" data-tooltip="${escapeHtml(guidance)}"><span class="compatibility ${model.compatible === true ? "yes" : model.compatible === false ? "no" : ""}"></span><div class="model-card-labels"><span class="family">${escapeHtml(model.family)}</span>${methodTags}</div><h3>${escapeHtml(model.name)}</h3><p>${escapeHtml(model.summary)}</p><div class="best-for"><strong>Best For:</strong> ${escapeHtml(model.best_for)}</div></article>`; }).join("") : `<div class="empty-card">No models match this filter.</div>`;
+        list.innerHTML = filtered.length ? filtered.map(model => { const methodTags = (model.tags || []).map(tag => `<span class="model-method-tag">${escapeHtml(tag)}</span>`).join(""); return `<article class="model-card ${model.compatible === false ? "incompatible" : ""}" draggable="${model.compatible !== false}" data-model-id="${escapeHtml(model.id)}" tabindex="0"><span class="compatibility ${model.compatible === true ? "yes" : model.compatible === false ? "no" : ""}"></span><div class="model-card-labels"><span class="family">${escapeHtml(model.family)}</span>${methodTags}</div><h3>${escapeHtml(model.name)}</h3><p>${escapeHtml(model.summary)}</p><div class="best-for"><strong>Best For:</strong> ${escapeHtml(model.best_for)}</div></article>`; }).join("") : `<div class="empty-card">No models match this filter.</div>`;
         $$(".model-card", list).forEach(card => {
             card.addEventListener("dragstart", event => event.dataTransfer.setData("text/model-id", card.dataset.modelId));
             card.addEventListener("click", () => chooseModel(card.dataset.modelId));
@@ -1660,15 +1809,59 @@
         $("#profile-name").value = response.user.display_name || response.user.username;
         const profileEmail = $("#profile-email");
         if (profileEmail) profileEmail.value = response.user.email || "";
+        const trainingInput = $("#setting-train");
+        const trainingWarning = $("#setting-train-warning");
+        const seedInput = $("#setting-seed");
+        const seedWarning = $("#setting-seed-warning");
+        bindBoundedWholeNumberInput(trainingInput, {
+            minimum: 0,
+            maximum: 100,
+            onValid: value => {
+                if (value !== "") clearFieldValidation(trainingInput, trainingWarning);
+            },
+            onInvalid: () => showFieldValidation(
+                trainingInput,
+                trainingWarning,
+                "Starting Training Percentage must be a whole number from 0% to 100%.",
+            ),
+        });
+        bindBoundedWholeNumberInput(seedInput, {
+            minimum: randomSeedMinimum,
+            maximum: randomSeedMaximum,
+            onValid: value => {
+                if (value !== "") clearFieldValidation(seedInput, seedWarning);
+            },
+            onInvalid: () => showFieldValidation(
+                seedInput,
+                seedWarning,
+                "Random Seed must be a whole number from 0 to 4,294,967,295.",
+            ),
+        });
         $("#save-settings").addEventListener("click", saveSettings);
         $("#save-profile").addEventListener("click", saveProfile);
     }
 
     async function saveSettings() {
+        const trainingInput = $("#setting-train");
+        const trainingWarning = $("#setting-train-warning");
+        const seedInput = $("#setting-seed");
+        const seedWarning = $("#setting-seed-warning");
+        const trainingPercentage = Number(trainingInput.value);
+        const randomSeed = Number(seedInput.value);
+
+        if (trainingInput.value === "" || !Number.isInteger(trainingPercentage) || trainingPercentage < 0 || trainingPercentage > 100) {
+            showFieldValidation(trainingInput, trainingWarning, "Starting Training Percentage must be a whole number from 0% to 100%.");
+            return;
+        }
+        if (seedInput.value === "" || !Number.isInteger(randomSeed) || randomSeed < randomSeedMinimum || randomSeed > randomSeedMaximum) {
+            showFieldValidation(seedInput, seedWarning, "Random Seed must be a whole number from 0 to 4,294,967,295.");
+            return;
+        }
+
         try {
             const response = await api("/api/settings", { method: "PUT", body: {
                 theme: $("#setting-theme").value, tooltips: $("#setting-tooltips").checked,
-                train_pct: Number($("#setting-train").value), random_seed: Number($("#setting-seed").value),
+                train_pct: trainingPercentage, random_seed: randomSeed,
                 processing: $("#setting-processing").value, export: $("#setting-export").value,
             }});
             state.settings = response.settings; document.documentElement.dataset.theme = state.settings.theme;

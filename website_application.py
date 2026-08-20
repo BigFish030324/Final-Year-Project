@@ -64,6 +64,8 @@ HISTORY_DIR = DATA_DIR / "history"
 CUSTOM_DIR = DATA_DIR / "custom_models"
 CUSTOM_CLEANING_DIR = DATA_DIR / "custom_cleaning"
 MAX_UPLOAD_BYTES = 1_000_000_000
+RANDOM_SEED_MINIMUM = 0
+RANDOM_SEED_MAXIMUM = 4_294_967_295
 
 for directory in (DATA_DIR, UPLOAD_DIR, RESULT_DIR, HISTORY_DIR, CUSTOM_DIR, CUSTOM_CLEANING_DIR):
     directory.mkdir(parents=True, exist_ok=True)
@@ -1328,11 +1330,26 @@ def save_settings():
     processing = {"sample": "economy", "chunked": "balanced"}.get(payload.get("processing"), payload.get("processing", "ask"))
     if processing not in {"ask", *PROCESSING_MODES}:
         raise UserFacingError("Choose Always Ask, Economy, Balanced, or Full processing.")
+    training_value = payload.get("train_pct", 70)
+    seed_value = payload.get("random_seed", 42)
+    if (
+        isinstance(training_value, bool)
+        or isinstance(seed_value, bool)
+        or not re.fullmatch(r"\d+", str(training_value))
+        or not re.fullmatch(r"\d+", str(seed_value))
+    ):
+        raise UserFacingError("Training percentage and Random Seed must be whole numbers.")
+    training_percentage = int(training_value)
+    random_seed = int(seed_value)
+    if not 0 <= training_percentage <= 100:
+        raise UserFacingError("Starting Training Percentage must be from 0% to 100%.")
+    if not RANDOM_SEED_MINIMUM <= random_seed <= RANDOM_SEED_MAXIMUM:
+        raise UserFacingError("Random Seed must be from 0 to 4,294,967,295.")
     settings_data = load_json(SETTINGS_FILE, {})
     settings_data[current_user().lower()] = {
         "theme": payload.get("theme", "light"),
-        "train_pct": max(0, min(100, int(payload.get("train_pct", 70)))),
-        "random_seed": int(payload.get("random_seed", 42)),
+        "train_pct": training_percentage,
+        "random_seed": random_seed,
         "processing": processing,
         "tooltips": bool(payload.get("tooltips", True)),
         "export": payload.get("export", "pdf"),
